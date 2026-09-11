@@ -1,7 +1,9 @@
 ﻿using System.Runtime.CompilerServices;
 using Pencils.RendererApi;
 using SharpGen.Runtime;
+using Vortice.D3DCompiler;
 using Vortice.Direct3D11;
+using Vortice.Direct3D11.Shader;
 
 namespace Pencils.Platform.DirectX11;
 

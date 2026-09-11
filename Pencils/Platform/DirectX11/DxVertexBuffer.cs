@@ -13,11 +13,14 @@ public class DxVertexBuffer : IVertexBuffer
     private readonly ID3D11Buffer _buffer;
     private readonly uint _stride;
     
+    public uint Count { get; }
+    
     public VertexAttribType[] AttribType { get; private set; }
     
     private DxVertexBuffer(IResourcesFactory factory, uint stride, uint count)
     {
         _stride = stride;
+        Count = count;
         _buffer = new ID3D11Buffer((nint)factory.CreateVertexBuffer(stride * count));
 
         AttribType = [];
@@ -26,6 +29,7 @@ public class DxVertexBuffer : IVertexBuffer
     private DxVertexBuffer(IResourcesFactory factory, nint dataPtr, uint stride, uint count)
     {
         _stride = stride;
+        Count = count;
         _buffer = new ID3D11Buffer((nint)factory.CreateVertexBuffer(dataPtr, stride * count));
         
         AttribType = [];

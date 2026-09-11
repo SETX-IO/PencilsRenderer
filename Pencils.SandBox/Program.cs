@@ -5,10 +5,6 @@ using Pencils.RendererApi;
 using Serilog;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
-// D3D
-using Vortice.Direct3D;
-using Vortice.Direct3D11;
-using Vortice.DXGI;
 
 namespace Pencils.SandBox;
 
@@ -23,16 +19,26 @@ class Program
 
 record struct Vertex(Vector3 Position, Vector3 Color);
 
+public struct CameraData(Vector3 position, Vector2 viewSize, float fov)
+{
+    public Matrix4x4 CameraMat => _viewMat * _projMat;
+    
+    private readonly Matrix4x4 _viewMat = Matrix4x4.CreateLookToLeftHanded(position, Vector3.UnitZ, Vector3.UnitY);
+    private readonly Matrix4x4 _projMat = Matrix4x4.CreatePerspectiveFieldOfViewLeftHanded(float.DegreesToRadians(fov), viewSize.X / viewSize.Y, 1, 100);
+}
+
 public class App
 {
     private readonly IWindow _window;
     private IGraphicsContext rendererContext;
     
-    private ID3D11DeviceContext deviceContext;
-    
     private Renderer _renderer;
     private IMesh _mesh;
     private IShader _shader;
+
+    private float _rotation;
+    
+    private CameraData _cameraData;
     
     private const string ShaderCode =
         """
@@ -48,12 +54,16 @@ public class App
             float4 color : COLOR0;
         };
         
+        cbuffer MvpMat : register(b0) {
+            float4x4 mvp; 
+        }
+        
         Varyings vert(Attributes In)
         {
             Varyings Out;
             
             Out.position = float4(In.position, 1.0f);
-            // Out.position = mul(Out.position, mvp);
+            Out.position = mul(Out.position, mvp);
         
             Out.color = float4(In.color, 1.0f);
             
@@ -90,12 +100,11 @@ public class App
 
     private void OnInit()
     {
-        var dxContext = new DxContext(_window.Native!.DXHandle!.Value);
-        rendererContext = dxContext;
+        rendererContext = new DxContext(_window.Native!.DXHandle!.Value);
         rendererContext.Init();
         rendererContext.SetBufferColor(Color.LightSlateGray);
         
-        _renderer = new Renderer();
+        _renderer = new Renderer(rendererContext);
         
         Vertex[] a = [
             new(new Vector3( 0,     0.5f, 0), new Vector3(1, 0, 0)),
@@ -108,39 +117,36 @@ public class App
             0, 1, 2
         ];
         
+        _cameraData = new CameraData(new Vector3(0, 0, -2), new Vector2(_window.Size.X, _window.Size.Y), 45f);
+        
         Log.Logger.Information("Initialized DxContext");
         
-        deviceContext = DxContext.Context;
         _mesh = DxMesh.Create();
-        
         var vertexBuffer = DxVertexBuffer.Create(rendererContext, a);
         vertexBuffer.SetVertexAttribs(VertexAttribType.Position3, VertexAttribType.Color3);
+        
         _mesh.AddVertexBuffer(vertexBuffer);
         _mesh.SetIndexBuffer(DxIndexBuffer.Create(rendererContext, ii));
-
-        var shaders = DxShader.Create(rendererContext, ShaderCode);
-        _shader = shaders;
+        
+        _shader = DxShader.Create(rendererContext, ShaderCode);
         _shader.SetVertexAttrib(_mesh.VertexAttribs);
+        _shader.UploadConstantMat44("MvpMat", _cameraData.CameraMat);
     }
 
-    private void OnRenderer(double obj) 
+    private void OnRenderer(double obj)
     {
+        _rotation += (float)obj * 2;
         rendererContext.SwapBuffers();
-        // _renderer.Clear();
         
-        // _renderer.SetViewport(800, 600, 1f);
-        deviceContext.RSSetViewport(0, 0, _window.Size.X, _window.Size.Y);
-        deviceContext.IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
+        _renderer.SetViewport(_window.Size.X, _window.Size.Y, 1f);
+        _renderer.RCommand.DefaultPrimitiveTopology();
         
         _renderer.BeginScene();
-        _renderer.Submit(_mesh);
-        _mesh.Bind();
         
         _shader.Use();
-        
-        deviceContext.DrawIndexed(_mesh.IndexBuffer.Count, 0, 0);
-        _mesh.Unbind();
-        
+        _shader.UploadConstantMat44("MvpMat", Matrix4x4.CreateRotationY(_rotation) * _cameraData.CameraMat);
+        _renderer.Submit(_mesh);
+
         _renderer.EndScene();
     }
 
