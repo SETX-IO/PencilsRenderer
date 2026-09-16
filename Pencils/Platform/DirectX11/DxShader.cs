@@ -102,11 +102,6 @@ public class DxShader : IShader
         ctx.CSSetShader(_computeShader);
     }
 
-    public void UnUse()
-    {
-        
-    }
-
     public void SetVertexAttrib(List<VertexAttrib> vertexAttribs)
     {
         InputElementDescription[] inputElements = new InputElementDescription[_vsReflection.InputParameters.Length];
@@ -123,15 +118,9 @@ public class DxShader : IShader
             
             uint padding = inputParameter.ComponentType switch
             {
-                RegisterComponentType.UInt32 => 4,
-                RegisterComponentType.SInt32 => 4,
-                RegisterComponentType.Float32 => 4,
-                RegisterComponentType.UInt16 => 2,
-                RegisterComponentType.SInt16 => 2,
-                RegisterComponentType.Float16 => 2,
-                RegisterComponentType.UInt64 => 8,
-                RegisterComponentType.SInt64 => 8,
-                RegisterComponentType.Float64 => 8,
+                RegisterComponentType.UInt32 or RegisterComponentType.SInt32 or RegisterComponentType.Float32 => 4,
+                RegisterComponentType.UInt16 or RegisterComponentType.SInt16 or RegisterComponentType.Float16 => 2,
+                RegisterComponentType.UInt64 or RegisterComponentType.SInt64 or RegisterComponentType.Float64 => 8,
                 RegisterComponentType.Unknown => throw new ArgumentOutOfRangeException()
             };
 
@@ -143,11 +132,6 @@ public class DxShader : IShader
                 RegisterComponentMaskFlags.All => 4,
                 _ => throw new ArgumentOutOfRangeException()
             };
-
-            // F32 41u
-            // F32F32 16U
-            // F32F32F32 6U
-            // F32F32F32F32 2U
 
             Format format = (padding * paddingCount) switch
             {
@@ -166,15 +150,22 @@ public class DxShader : IShader
         _inputLayout = DxContext.Context.Device.CreateInputLayout(inputElements, _vsBytes.Span);
     }
 
-    public unsafe void UploadConstantMat44(string constantName, Matrix4x4 mat, ShaderType visibleShader)
+    public void UploadConstantMat44(string constantName, Matrix4x4 mat, ShaderType visibleShader)
+    {
+        mat = Matrix4x4.Transpose(mat);
+        UploadContextData(constantName, ref mat, visibleShader);
+    }
+
+    public void UploadConstantFloat3(string constantName, Vector3 vec3, ShaderType visibleShader = ShaderType.Vertex) =>
+        UploadContextData(constantName, ref vec3, visibleShader);
+
+    private unsafe void UploadContextData<T>(string constantName, ref T data, ShaderType visibleShader) where T : struct
     {
         var ctx = DxContext.Context;
         
         if (!_constantBuffer.TryGetValue(constantName, out var constantBuffer))
-        {
             return;
-        }
-
+        
         switch (visibleShader)
         {
             case ShaderType.Vertex:
@@ -198,17 +189,10 @@ public class DxShader : IShader
             default:
                 throw new ArgumentOutOfRangeException(nameof(visibleShader), visibleShader, null);
         }
-
-        Matrix4x4 transposeMat = Matrix4x4.Transpose(mat);
         
-        var data = ctx.Map(constantBuffer.buffer, MapMode.WriteDiscard).DataPointer;
-        Unsafe.Copy((void*)data, ref transposeMat);
-        ctx.Unmap(constantBuffer.buffer);
-    }
-
-    public void UploadConstantFloat3(string constantName, Vector3 vec3, ShaderType visibleShader = ShaderType.Vertex)
-    {
-        throw new NotImplementedException();
+        var dataPtr = ctx.Map(constantBuffer.buffer, MapMode.WriteDiscard).DataPointer;
+        
+        Unsafe.Copy((void*)dataPtr, ref data);
     }
 
     public static DxShader Create(IGraphicsContext context, string shaderCode, bool isBaseShader = true) =>

@@ -5,7 +5,6 @@ namespace Pencils.RendererApi;
 public interface IShader
 {
     void Use();
-    void UnUse();
     void SetVertexAttrib(List<VertexAttrib> vertexAttribs);
 
     void UploadConstantMat44(string constantName, Matrix4x4 mat, ShaderType visibleShader = ShaderType.Vertex);

@@ -8,4 +8,12 @@
         <RootNamespace>Pencils.Extension</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Pencils\Pencils.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Hexa.NET.ImGui" Version="2.2.9" />
+    </ItemGroup>
+
 </Project>

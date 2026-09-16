@@ -35,6 +35,7 @@ public class App
     private Renderer _renderer;
     private IMesh _mesh;
     private IShader _shader;
+    private ITexture2D _texture;
 
     private float _rotation;
     
@@ -45,13 +46,13 @@ public class App
         struct Attributes
         {
             float3 position : POSITION;
-            float3 color : COLOR0;
+            float2 color : TEXCOORD0;
         };
         
         struct Varyings
         {
             float4 position : SV_POSITION;
-            float4 color : COLOR0;
+            float2 color : TEXCOORD0;
         };
         
         cbuffer MvpMat : register(b0) {
@@ -65,15 +66,18 @@ public class App
             Out.position = float4(In.position, 1.0f);
             Out.position = mul(Out.position, mvp);
         
-            Out.color = float4(In.color, 1.0f);
+            Out.color = In.color;
             
             return Out;
         }
         
+        Texture2D tex : register(t0);
+        SamplerState samLineear : register(s0);
+        
         float4 frag(Varyings In) : SV_Target
         {
-            // return float4(0, 0.3f, 0.1f, 1);
-            return In.color;
+            return tex.Sample(samLineear, In.color.xy);
+            // return float4(In.color.xy, 0, 1);
         }
         """;
     
@@ -107,14 +111,16 @@ public class App
         _renderer = new Renderer(rendererContext);
         
         Vertex[] a = [
-            new(new Vector3( 0,     0.5f, 0), new Vector3(1, 0, 0)),
-            new(new Vector3( 0.5f, -0.5f, 0), new Vector3(0, 1, 0)),
-            new(new Vector3(-0.5f, -0.5f, 0), new Vector3(0, 0, 1)) 
+            new(new Vector3(-0.5f,  0.5f, 0), new Vector3(0, 1, 0)),
+            new(new Vector3( 0.5f,  0.5f, 0), new Vector3(1, 1, 0)),
+            new(new Vector3( 0.5f, -0.5f, 0), new Vector3(1, 0, 0)),
+            new(new Vector3(-0.5f, -0.5f, 0), new Vector3(0, 0, 0)),
         ];
 
         ushort[] ii =
         [
-            0, 1, 2
+            0, 1, 2,
+            2, 3, 0
         ];
         
         _cameraData = new CameraData(new Vector3(0, 0, -2), new Vector2(_window.Size.X, _window.Size.Y), 45f);
@@ -130,7 +136,8 @@ public class App
         
         _shader = DxShader.Create(rendererContext, ShaderCode);
         _shader.SetVertexAttrib(_mesh.VertexAttribs);
-        _shader.UploadConstantMat44("MvpMat", _cameraData.CameraMat);
+
+        _texture = DxTexture2D.Create(rendererContext, "image/container.jpg");
     }
 
     private void OnRenderer(double obj)
@@ -141,11 +148,10 @@ public class App
         _renderer.SetViewport(_window.Size.X, _window.Size.Y, 1f);
         _renderer.RCommand.DefaultPrimitiveTopology();
         
-        _renderer.BeginScene();
-        
-        _shader.Use();
-        _shader.UploadConstantMat44("MvpMat", Matrix4x4.CreateRotationY(_rotation) * _cameraData.CameraMat);
-        _renderer.Submit(_mesh);
+        _renderer.BeginScene(_cameraData.CameraMat);
+
+        _texture.Bind(0);
+        _renderer.Submit(_shader, _mesh, Matrix4x4.CreateRotationZ(_rotation));
 
         _renderer.EndScene();
     }
@@ -155,8 +161,7 @@ public class App
         rendererContext.ReSizeBuffer((uint)obj.X, (uint)obj.Y);
         Log.Logger.Information("Resized [{0}, {1}]",  obj.X, obj.Y);
     }
-
-
+    
     private void OnUpdate(double obj)
     {
     }
