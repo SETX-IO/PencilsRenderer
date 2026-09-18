@@ -1,4 +1,6 @@
-﻿namespace Pencils.RendererApi;
+﻿using System;
+
+namespace Pencils.RendererApi;
 
 public interface IResourcesFactory
 {

@@ -1,4 +1,7 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using Pencils.RendererApi;
 using Vortice.Direct3D11;
@@ -12,20 +15,45 @@ namespace Pencils.Platform.DirectX11;
 public class DxShader : IShader
 {
     // baseShader
-    private ID3D11VertexShader? _vertexShader;
-    private ID3D11PixelShader? _pixelShader;
+    private readonly ID3D11VertexShader? _vertexShader;
+    private readonly ID3D11PixelShader? _pixelShader;
     
-    private ID3D11HullShader? _hullShader;
-    private ID3D11DomainShader? _domainShader;
-    private ID3D11GeometryShader? _geometryShader;
-    private ID3D11ComputeShader? _computeShader;
+    private readonly ID3D11HullShader? _hullShader;
+    private readonly ID3D11DomainShader? _domainShader;
+    private readonly ID3D11GeometryShader? _geometryShader;
+    private readonly ID3D11ComputeShader? _computeShader;
 
-    private bool _isBaseShader;
+    private readonly bool _isBaseShader;
     private ID3D11InputLayout? _inputLayout;
 
     private readonly ReadOnlyMemory<byte> _vsBytes;
     private readonly ID3D11ShaderReflection _vsReflection;
-    private Dictionary<string, (uint slot, ID3D11Buffer buffer)> _constantBuffer = new();
+    private readonly Dictionary<string, (uint slot, ID3D11Buffer buffer)> _constantBuffer = new();
+    
+    public string Name { get; }
+
+    private DxShader(IResourcesFactory factory, string shaderPath)
+    {
+        _isBaseShader = true;
+        Name = Path.GetFileNameWithoutExtension(shaderPath);
+
+        var shaderBytes = CompileForFile(ShaderType.Vertex, shaderPath);
+
+        _vsBytes = shaderBytes;
+        _vsReflection = Compiler.Reflect<ID3D11ShaderReflection>(shaderBytes.Span);
+        _vertexShader = new ID3D11VertexShader((nint)factory.CreateShader(ShaderType.Vertex, shaderBytes.Span));
+        
+        shaderBytes = CompileForFile(ShaderType.Pixel, shaderPath);
+        _pixelShader = new ID3D11PixelShader((nint)factory.CreateShader(ShaderType.Pixel, shaderBytes.Span));
+
+        for (int i = 0; i < _vsReflection.ConstantBuffers.Length; i++)
+        {
+            ConstantBufferDescription info = _vsReflection.ConstantBuffers[i].Description;
+
+            var constant = DxContext.Context.Device.CreateBuffer(new BufferDescription(info.Size, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
+            _constantBuffer.Add(info.Name, ((uint)i, constant));
+        }
+    }
     
     private DxShader(IResourcesFactory factory, string shaderCode, bool isBaseShader)
     {
@@ -195,8 +223,13 @@ public class DxShader : IShader
         Unsafe.Copy((void*)dataPtr, ref data);
     }
 
-    public static DxShader Create(IGraphicsContext context, string shaderCode, bool isBaseShader = true) =>
-        new(context.ResourcesFactory, shaderCode, isBaseShader);
+    public static IShader Create(IResourcesFactory factory, string shaderCode, bool isBaseShader = true) =>
+        new DxShader(factory, shaderCode, isBaseShader);
+
+    public static IShader Create(IResourcesFactory factory, string shaderPath)
+    {
+        return new DxShader(factory, shaderPath);
+    }
 
     public static ReadOnlyMemory<byte> Compile(ShaderType type, string shaderCode)
     {
@@ -213,6 +246,24 @@ public class DxShader : IShader
         
         var il = Compiler.Compile(shaderCode, shaderProfile.entryPoitn, shaderProfile.entryPoitn, shaderProfile.profile + "_5_0");
 
+        return il;
+    }
+
+    public static ReadOnlyMemory<byte> CompileForFile(ShaderType type, string shaderPath)
+    {
+        (string entryPoitn, string profile) shaderProfile = type switch
+        {
+            ShaderType.Vertex => ("vert", "vs"),
+            ShaderType.Pixel => ("frag", "ps"),
+            ShaderType.Hull => ("hull", "hs"),
+            ShaderType.Domain => ("domain", "ds"),
+            ShaderType.Geometry => ("geometry", "gs"),
+            ShaderType.Compute => ("compute", "cs"),
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+        
+        var il = Compiler.CompileFromFile(shaderPath, shaderProfile.entryPoitn, shaderProfile.profile + "_5_0");
+        
         return il;
     }
 }

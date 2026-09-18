@@ -19,12 +19,13 @@ class Program
 
 record struct Vertex(Vector3 Position, Vector3 Color);
 
-public struct CameraData(Vector3 position, Vector2 viewSize, float fov)
+public struct CameraData(Vector3 position, Vector2 size, float fov)
 {
-    public Matrix4x4 CameraMat => _viewMat * _projMat;
+    public Matrix4x4 CameraMat => ViewMat * ProjMat;
+    public Vector2 viewSize = size;
     
-    private readonly Matrix4x4 _viewMat = Matrix4x4.CreateLookToLeftHanded(position, Vector3.UnitZ, Vector3.UnitY);
-    private readonly Matrix4x4 _projMat = Matrix4x4.CreatePerspectiveFieldOfViewLeftHanded(float.DegreesToRadians(fov), viewSize.X / viewSize.Y, 1, 100);
+    private Matrix4x4 ViewMat => Matrix4x4.CreateLookToLeftHanded(position, Vector3.UnitZ, Vector3.UnitY);
+    private Matrix4x4 ProjMat => Matrix4x4.CreatePerspectiveFieldOfViewLeftHanded(float.DegreesToRadians(fov), viewSize.X / viewSize.Y, 1, 100);
 }
 
 public class App
@@ -34,58 +35,18 @@ public class App
     
     private Renderer _renderer;
     private IMesh _mesh;
-    private IShader _shader;
+    private IShaderLibrary _shaderLibrary;
     private ITexture2D _texture;
 
     private float _rotation;
     
     private CameraData _cameraData;
     
-    private const string ShaderCode =
-        """
-        struct Attributes
-        {
-            float3 position : POSITION;
-            float2 color : TEXCOORD0;
-        };
-        
-        struct Varyings
-        {
-            float4 position : SV_POSITION;
-            float2 color : TEXCOORD0;
-        };
-        
-        cbuffer MvpMat : register(b0) {
-            float4x4 mvp; 
-        }
-        
-        Varyings vert(Attributes In)
-        {
-            Varyings Out;
-            
-            Out.position = float4(In.position, 1.0f);
-            Out.position = mul(Out.position, mvp);
-        
-            Out.color = In.color;
-            
-            return Out;
-        }
-        
-        Texture2D tex : register(t0);
-        SamplerState samLineear : register(s0);
-        
-        float4 frag(Varyings In) : SV_Target
-        {
-            return tex.Sample(samLineear, In.color.xy);
-            // return float4(In.color.xy, 0, 1);
-        }
-        """;
-    
     public App(string[] args, string title, int width, int height)
     {
         const string LogTemplate =
-            "{SourceContext} {Scope} {Timestamp:HH:mm} [{Level}] {Message:lj} {Properties:j} {NewLine}{Exception}";
-        const string LogTemplateConsole =
+                "{SourceContext} {Scope} {Timestamp:HH:mm} [{Level}] {Message:lj} {Properties:j} {NewLine}{Exception}";
+            const string LogTemplateConsole =
             "[{Timestamp:yyyy-MM-dd hh:mm:ss}] [{SourceContext}] [{Level}] : {Message}{NewLine} {Exception}";
         Log.Logger = new LoggerConfiguration().WriteTo.Console(outputTemplate: LogTemplateConsole).CreateLogger();
 
@@ -134,8 +95,10 @@ public class App
         _mesh.AddVertexBuffer(vertexBuffer);
         _mesh.SetIndexBuffer(DxIndexBuffer.Create(rendererContext, ii));
         
-        _shader = DxShader.Create(rendererContext, ShaderCode);
-        _shader.SetVertexAttrib(_mesh.VertexAttribs);
+        _shaderLibrary = DxShaderLibrary.Create(rendererContext);
+        var shader = _shaderLibrary.Load("Shader/Texture.hlsl");
+        
+        shader.SetVertexAttrib(_mesh.VertexAttribs);
 
         _texture = DxTexture2D.Create(rendererContext, "image/container.jpg");
     }
@@ -146,12 +109,15 @@ public class App
         rendererContext.SwapBuffers();
         
         _renderer.SetViewport(_window.Size.X, _window.Size.Y, 1f);
+        _cameraData.viewSize = new Vector2(_window.Size.X, _window.Size.Y);
         _renderer.RCommand.DefaultPrimitiveTopology();
+
+        var textureShader = _shaderLibrary["Texture"];
         
         _renderer.BeginScene(_cameraData.CameraMat);
 
         _texture.Bind(0);
-        _renderer.Submit(_shader, _mesh, Matrix4x4.CreateRotationZ(_rotation));
+        _renderer.Submit(textureShader, _mesh, Matrix4x4.CreateRotationZ(_rotation));
 
         _renderer.EndScene();
     }

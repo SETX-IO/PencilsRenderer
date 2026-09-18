@@ -1,9 +1,12 @@
-﻿using System.Numerics;
+﻿using System.Collections.Generic;
+using System.Numerics;
 
 namespace Pencils.RendererApi;
 
 public interface IShader
 {
+    string Name { get; }
+    
     void Use();
     void SetVertexAttrib(List<VertexAttrib> vertexAttribs);
 

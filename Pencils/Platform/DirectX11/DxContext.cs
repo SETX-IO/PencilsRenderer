@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using Pencils.RendererApi;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
@@ -6,7 +7,7 @@ using Vortice.DXGI;
 
 namespace Pencils.Platform.DirectX11;
 
-public class DxContext(nint hwnd) : IGraphicsContext
+public class DxContext : IGraphicsContext
 {
     private uint _backBufferCount;
     
@@ -15,7 +16,8 @@ public class DxContext(nint hwnd) : IGraphicsContext
     private IDXGISwapChain swapChain;
     private ID3D11RenderTargetView _rtv;
     private Vortice.Mathematics.Color _clearColor;
-    
+    private readonly nint hwnd;
+
     public static bool IsInitialized;
     public ID3D11Device Device => device;
 
@@ -26,7 +28,15 @@ public class DxContext(nint hwnd) : IGraphicsContext
     }
 
     public IResourcesFactory ResourcesFactory { get; private set; }
+    public GraphicsApi Api { get; }
 
+    public DxContext(nint hwnd)
+    {
+        Api = GraphicsApi.DirectX11;
+        
+        this.hwnd = hwnd;
+    }
+    
     public void Init()
     {
         SwapChainDescription swDesc = new SwapChainDescription

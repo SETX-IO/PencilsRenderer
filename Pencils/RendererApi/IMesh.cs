@@ -1,4 +1,6 @@
-﻿namespace Pencils.RendererApi;
+﻿using System.Collections.Generic;
+
+namespace Pencils.RendererApi;
 
 public interface IMesh
 {

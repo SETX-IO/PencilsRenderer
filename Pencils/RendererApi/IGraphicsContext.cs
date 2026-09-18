@@ -5,6 +5,7 @@ namespace Pencils.RendererApi;
 public interface IGraphicsContext
 {
     IResourcesFactory ResourcesFactory { get; }
+    GraphicsApi Api { get; }
     
     void Init();
     void SetBufferColor(Color color);

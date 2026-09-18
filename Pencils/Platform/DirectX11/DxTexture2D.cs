@@ -1,4 +1,5 @@
-﻿using Pencils.RendererApi;
+﻿using System;
+using Pencils.RendererApi;
 using SharpGen.Runtime;
 using Vortice.Direct3D11;
 

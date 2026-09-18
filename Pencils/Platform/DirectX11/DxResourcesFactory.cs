@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 using Pencils.Platform.DirectX11.Utility;
 using Pencils.RendererApi;
 using SharpGen.Runtime;

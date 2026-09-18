@@ -1,4 +1,5 @@
-﻿using Pencils.RendererApi;
+﻿using System;
+using Pencils.RendererApi;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
 

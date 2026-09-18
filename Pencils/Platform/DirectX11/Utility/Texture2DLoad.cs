@@ -1,4 +1,6 @@
-﻿using Vortice.DXGI;
+﻿using System;
+using System.Linq;
+using Vortice.DXGI;
 using Vortice.Mathematics;
 using Vortice.WIC;
 
@@ -67,32 +69,41 @@ public class Texture2DLoad
 
     public static byte[] ConverterFrame(IWICBitmapFrameDecode frameDecode, out RectI rect, out Format dxgiFormat)
     {
-        bool isCanConvert;
+        uint rowBytes;
+        uint textureSize;
+        byte[] data;
         IWICFormatConverter converter = Factory.CreateFormatConverter();
-        dxgiFormat = PixleFormatToDxgiFormat(frameDecode.PixelFormat);
+        dxgiFormat = PixelFormatToDxgiFormat(frameDecode.PixelFormat);
 
-        if (dxgiFormat != Format.Unknown) isCanConvert = false;
+        if (dxgiFormat != Format.Unknown)
+        {
+            rowBytes = GetFrameDecodeRowBytes(frameDecode, dxgiFormat, out rect, out textureSize);
+            data = new byte[textureSize];
+            
+            frameDecode.CopyPixels(rect, rowBytes, data);
+
+            return data;
+        }
         
         Guid format = GetConvertFormat(frameDecode.PixelFormat);
         
         if (format == PixelFormat.FormatDontCare)
             throw new NotSupportedException($"\"{frameDecode}\" image format is not support.");
 
-        dxgiFormat = PixleFormatToDxgiFormat(format);
+        dxgiFormat = PixelFormatToDxgiFormat(format);
         
-        isCanConvert = converter.CanConvert(frameDecode.PixelFormat, format);
-        if (isCanConvert)
-            converter.Initialize(frameDecode, format);
+        rowBytes = GetFrameDecodeRowBytes(frameDecode, dxgiFormat, out rect, out textureSize);
+        data = new byte[textureSize];
         
-        uint rowBytes = GetFrameDecodeRowBytes(frameDecode, dxgiFormat, out rect, out uint textureSize);
-        byte[] data = new byte[textureSize];
-        
-        if (isCanConvert)
-            converter.CopyPixels(rect, rowBytes, data);
-        else
-            frameDecode.CopyPixels(rect, rowBytes, data);
+        converter.Initialize(frameDecode, format);
 
-        return data;
+        if (converter.CanConvert(frameDecode.PixelFormat, format))
+        {
+            converter.CopyPixels(rect, rowBytes, data);
+            return data;
+        }
+
+        throw new FormatException("Image format not supported.");
     }
     
     private static uint GetFrameDecodeRowBytes(IWICBitmapFrameDecode frameDecode, Format dxgiFormat, out RectI rect, out uint nubBytes)
@@ -107,7 +118,7 @@ public class Texture2DLoad
         return (uint)rowBytes;
     }
 
-    private static Format PixleFormatToDxgiFormat(Guid pixelFormat)
+    private static Format PixelFormatToDxgiFormat(Guid pixelFormat)
     {
         (Guid pixelFormat, Format dxgiFormat)[] toArray =
         [
