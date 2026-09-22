@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using System.Numerics;
 using Pencils.Platform.DirectX11;
 using Pencils.RendererApi;
@@ -17,38 +18,19 @@ class Program
     }
 }
 
-record struct Vertex(Vector3 Position, Vector3 Color);
-
-public struct CameraData(Vector3 position, Vector2 size, float fov)
-{
-    public Matrix4x4 CameraMat => ViewMat * ProjMat;
-    public Vector2 viewSize = size;
-    
-    private Matrix4x4 ViewMat => Matrix4x4.CreateLookToLeftHanded(position, Vector3.UnitZ, Vector3.UnitY);
-    private Matrix4x4 ProjMat => Matrix4x4.CreatePerspectiveFieldOfViewLeftHanded(float.DegreesToRadians(fov), viewSize.X / viewSize.Y, 1, 100);
-}
-
 public class App
 {
     private readonly IWindow _window;
     private IGraphicsContext rendererContext;
-    
-    private Renderer _renderer;
-    private IMesh _mesh;
-    private IShaderLibrary _shaderLibrary;
-    private ITexture2D _texture;
-
-    private float _rotation;
-    
-    private CameraData _cameraData;
+    private List<ISandBox> _sandBoxs;
     
     public App(string[] args, string title, int width, int height)
     {
-        const string LogTemplate =
+        const string logTemplate =
                 "{SourceContext} {Scope} {Timestamp:HH:mm} [{Level}] {Message:lj} {Properties:j} {NewLine}{Exception}";
-            const string LogTemplateConsole =
+            const string logTemplateConsole =
             "[{Timestamp:yyyy-MM-dd hh:mm:ss}] [{SourceContext}] [{Level}] : {Message}{NewLine} {Exception}";
-        Log.Logger = new LoggerConfiguration().WriteTo.Console(outputTemplate: LogTemplateConsole).CreateLogger();
+        Log.Logger = new LoggerConfiguration().WriteTo.Console(outputTemplate: logTemplateConsole).CreateLogger();
 
         WindowOptions options = WindowOptions.Default;
         options.API = GraphicsAPI.None;
@@ -57,6 +39,8 @@ public class App
 
         _window = Window.Create(options);
 
+        _sandBoxs = [];
+        
         _window.Load += OnInit;
         _window.Render += OnRenderer;
         _window.Update += OnUpdate;
@@ -69,67 +53,33 @@ public class App
         rendererContext.Init();
         rendererContext.SetBufferColor(Color.LightSlateGray);
         
-        _renderer = new Renderer(rendererContext);
+        // _sandBoxs.Add(new SandBox3D(rendererContext));
+        _sandBoxs.Add(new SandBox2D(rendererContext));
         
-        Vertex[] a = [
-            new(new Vector3(-0.5f,  0.5f, 0), new Vector3(0, 1, 0)),
-            new(new Vector3( 0.5f,  0.5f, 0), new Vector3(1, 1, 0)),
-            new(new Vector3( 0.5f, -0.5f, 0), new Vector3(1, 0, 0)),
-            new(new Vector3(-0.5f, -0.5f, 0), new Vector3(0, 0, 0)),
-        ];
-
-        ushort[] ii =
-        [
-            0, 1, 2,
-            2, 3, 0
-        ];
-        
-        _cameraData = new CameraData(new Vector3(0, 0, -2), new Vector2(_window.Size.X, _window.Size.Y), 45f);
-        
-        Log.Logger.Information("Initialized DxContext");
-        
-        _mesh = DxMesh.Create();
-        var vertexBuffer = DxVertexBuffer.Create(rendererContext, a);
-        vertexBuffer.SetVertexAttribs(VertexAttribType.Position3, VertexAttribType.Color3);
-        
-        _mesh.AddVertexBuffer(vertexBuffer);
-        _mesh.SetIndexBuffer(DxIndexBuffer.Create(rendererContext, ii));
-        
-        _shaderLibrary = DxShaderLibrary.Create(rendererContext);
-        var shader = _shaderLibrary.Load("Shader/Texture.hlsl");
-        
-        shader.SetVertexAttrib(_mesh.VertexAttribs);
-
-        _texture = DxTexture2D.Create(rendererContext, "image/container.jpg");
+        foreach (var sandBox in _sandBoxs)
+        {
+            sandBox.Init(_window.Size.X, _window.Size.Y);
+        }
     }
 
     private void OnRenderer(double obj)
     {
-        _rotation += (float)obj * 2;
         rendererContext.SwapBuffers();
-        
-        _renderer.SetViewport(_window.Size.X, _window.Size.Y, 1f);
-        _cameraData.viewSize = new Vector2(_window.Size.X, _window.Size.Y);
-        _renderer.RCommand.DefaultPrimitiveTopology();
-
-        var textureShader = _shaderLibrary["Texture"];
-        
-        _renderer.BeginScene(_cameraData.CameraMat);
-
-        _texture.Bind(0);
-        _renderer.Submit(textureShader, _mesh, Matrix4x4.CreateRotationZ(_rotation));
-
-        _renderer.EndScene();
+        foreach (var sandBox in _sandBoxs)
+            sandBox.Renderer((float)obj);
     }
 
     private void OnResize(Vector2D<int> obj)
     {
         rendererContext.ReSizeBuffer((uint)obj.X, (uint)obj.Y);
+        
         Log.Logger.Information("Resized [{0}, {1}]",  obj.X, obj.Y);
     }
     
     private void OnUpdate(double obj)
     {
+        foreach (var sandBox in _sandBoxs)
+            sandBox.Update((float)obj);
     }
 
     public void Run() => _window.Run();

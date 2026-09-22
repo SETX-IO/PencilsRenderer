@@ -28,8 +28,13 @@ public class DxTexture2D : ITexture2D
     
     public void Bind(uint slot)
     {
-        // TODO: 添加 Sampler 绑定
-        DxContext.Context.GenerateMips(_textureSrv);
+        /*
+         * TODO:
+         * 添加 Sampler 绑定
+         * 使纹理自动生成多级纹理
+        */
+        
+        // DxContext.Context.GenerateMips(_textureSrv);
         DxContext.Context.PSSetShaderResource(slot, _textureSrv);
     }
 

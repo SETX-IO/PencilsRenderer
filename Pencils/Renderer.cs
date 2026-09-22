@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Pencils.Platform.DirectX11;
 using Pencils.RendererApi;
+using Serilog;
 using Vortice.Mathematics;
 
 namespace Pencils;
@@ -12,6 +13,8 @@ public record struct SceneData
 
 public class Renderer(IGraphicsContext gContext)
 {
+    protected IGraphicsContext gContext = gContext;
+    
     private IRenderCommand _rCommand = new DxRenderCommand();
     private IMesh? _firstMesh;
     
@@ -27,17 +30,22 @@ public class Renderer(IGraphicsContext gContext)
         _rCommand.SetViewport(_viewport);
     }
 
-    public void BeginScene(Matrix4x4 camera)
+    public virtual void BeginScene(Matrix4x4 camera)
     {
         _sceneData.ViewProjMat = camera;
     }
     
-    public void Submit(IShader shader, IMesh mesh, Matrix4x4 transform)
+    public void Submit(IShader? shader, IMesh mesh, Matrix4x4 transform)
     {
         _firstMesh?.Unbind();
+
+        if (shader == null)
+        {
+            Log.Logger.Error($"shader is null");
+            return;
+        }
         
         shader.Use();
-        
         shader.UploadConstantMat44("MvpMat", transform * _sceneData.ViewProjMat);
         
         mesh.Bind();
@@ -49,10 +57,10 @@ public class Renderer(IGraphicsContext gContext)
             return;
         }
         
-        _rCommand.DrawIndexed(mesh.IndexBuffer.Count);
+        _rCommand.DrawIndexed(mesh.VertexCount);
     }
     
-    public void EndScene()
+    public virtual void EndScene()
     {
         
     }

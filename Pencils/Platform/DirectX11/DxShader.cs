@@ -4,13 +4,22 @@ using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Pencils.RendererApi;
+using Serilog;
+using Silk.NET.OpenGL;
 using Vortice.Direct3D11;
 using Vortice.D3DCompiler;
 using Vortice.Direct3D;
 using Vortice.Direct3D11.Shader;
 using Vortice.DXGI;
+using ShaderType = Pencils.RendererApi.ShaderType;
 
 namespace Pencils.Platform.DirectX11;
+
+public class ShaderConstant(uint slot, ID3D11Buffer buffer)
+{
+    public uint slot = slot;
+    public ID3D11Buffer constantBuffer = buffer;
+}
 
 public class DxShader : IShader
 {
@@ -25,10 +34,10 @@ public class DxShader : IShader
 
     private readonly bool _isBaseShader;
     private ID3D11InputLayout? _inputLayout;
+    
+    private readonly Dictionary<ShaderType, ID3D11ShaderReflection> _shaderReflection = new();
 
-    private readonly ReadOnlyMemory<byte> _vsBytes;
-    private readonly ID3D11ShaderReflection _vsReflection;
-    private readonly Dictionary<string, (uint slot, ID3D11Buffer buffer)> _constantBuffer = new();
+    private readonly Dictionary<ShaderType, Dictionary<string, ShaderConstant>> _constantBuffers;
     
     public string Name { get; }
 
@@ -36,29 +45,39 @@ public class DxShader : IShader
     {
         _isBaseShader = true;
         Name = Path.GetFileNameWithoutExtension(shaderPath);
+        _constantBuffers = new Dictionary<ShaderType, Dictionary<string, ShaderConstant>>();
 
         var shaderBytes = CompileForFile(ShaderType.Vertex, shaderPath);
-
-        _vsBytes = shaderBytes;
-        _vsReflection = Compiler.Reflect<ID3D11ShaderReflection>(shaderBytes.Span);
+        var vsShaderBytes = shaderBytes;
+        
+        _shaderReflection.Add(ShaderType.Vertex, Compiler.Reflect<ID3D11ShaderReflection>(shaderBytes.Span));
         _vertexShader = new ID3D11VertexShader((nint)factory.CreateShader(ShaderType.Vertex, shaderBytes.Span));
         
         shaderBytes = CompileForFile(ShaderType.Pixel, shaderPath);
         _pixelShader = new ID3D11PixelShader((nint)factory.CreateShader(ShaderType.Pixel, shaderBytes.Span));
+        _shaderReflection.Add(ShaderType.Pixel, Compiler.Reflect<ID3D11ShaderReflection>(shaderBytes.Span));
 
-        for (int i = 0; i < _vsReflection.ConstantBuffers.Length; i++)
+        foreach (var reflection in _shaderReflection)
         {
-            ConstantBufferDescription info = _vsReflection.ConstantBuffers[i].Description;
+            Dictionary<string, ShaderConstant> constants = new();
+            for (int i = 0; i < reflection.Value.ConstantBuffers.Length; i++)
+            {
+                ConstantBufferDescription info = reflection.Value.ConstantBuffers[i].Description;
 
-            var constant = DxContext.Context.Device.CreateBuffer(new BufferDescription(info.Size, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
-            _constantBuffer.Add(info.Name, ((uint)i, constant));
+                var constant = DxContext.Context.Device.CreateBuffer(new BufferDescription(info.Size, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
+                constants.Add(info.Name, new ShaderConstant((uint)i, constant));
+            }
+            _constantBuffers.Add(reflection.Key, constants);
         }
+
+        ConfigVertexAttrib(vsShaderBytes);
     }
     
     private DxShader(IResourcesFactory factory, string shaderCode, bool isBaseShader)
     {
         _isBaseShader = isBaseShader;
-        
+        _constantBuffers = new Dictionary<ShaderType, Dictionary<string, ShaderConstant>>();
+
         switch (isBaseShader)
         {
             case true when !shaderCode.Contains("vert") && !shaderCode.Contains("frag"):
@@ -66,21 +85,16 @@ public class DxShader : IShader
             case true:
             {
                 var il = Compile(ShaderType.Vertex, shaderCode);
-                _vertexShader = new ID3D11VertexShader((nint)factory.CreateShader(ShaderType.Vertex, il.Span));
-                _vsBytes = il;
+                ReadOnlyMemory<byte> vsShaderBytes = il;
                 
-                _vsReflection = Compiler.Reflect<ID3D11ShaderReflection>(_vsBytes.Span);
+                _vertexShader = new ID3D11VertexShader((nint)factory.CreateShader(ShaderType.Vertex, il.Span));
+                _shaderReflection[ShaderType.Vertex] = Compiler.Reflect<ID3D11ShaderReflection>(il.Span);
                 
                 il = Compile(ShaderType.Pixel, shaderCode);
                 _pixelShader = new ID3D11PixelShader((nint)factory.CreateShader(ShaderType.Pixel, il.Span));
-
-                for (int i = 0; i < _vsReflection.ConstantBuffers.Length; i++)
-                {
-                    ConstantBufferDescription info = _vsReflection.ConstantBuffers[i].Description;
-
-                    var constant = DxContext.Context.Device.CreateBuffer(new BufferDescription(info.Size, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
-                    _constantBuffer.Add(info.Name, ((uint)i, constant));
-                }
+                _shaderReflection.Add(ShaderType.Pixel, Compiler.Reflect<ID3D11ShaderReflection>(il.Span));
+                
+                ConfigVertexAttrib(vsShaderBytes);
                 
                 break;
             }
@@ -90,24 +104,41 @@ public class DxShader : IShader
         {
             var il = Compile(ShaderType.Hull, shaderCode);
             _hullShader = new ID3D11HullShader((nint)factory.CreateShader(ShaderType.Hull, il.Span));
+            _shaderReflection.Add(ShaderType.Hull, Compiler.Reflect<ID3D11ShaderReflection>(il.Span));
         }
         
         if (shaderCode.Contains("domain"))
         {
-            var il = Compile(ShaderType.Hull, shaderCode);
+            var il = Compile(ShaderType.Domain, shaderCode);
             _domainShader = new ID3D11DomainShader((nint)factory.CreateShader(ShaderType.Domain, il.Span));
+            _shaderReflection.Add(ShaderType.Domain, Compiler.Reflect<ID3D11ShaderReflection>(il.Span));
         }
         
         if (shaderCode.Contains("geometry"))
         {
-            var il = Compile(ShaderType.Hull, shaderCode);
+            var il = Compile(ShaderType.Geometry, shaderCode);
             _geometryShader = new ID3D11GeometryShader((nint)factory.CreateShader(ShaderType.Geometry, il.Span));
+            _shaderReflection.Add(ShaderType.Geometry, Compiler.Reflect<ID3D11ShaderReflection>(il.Span));
         }
         
         if (shaderCode.Contains("compute"))
         {
-            var il = Compile(ShaderType.Hull, shaderCode);
+            var il = Compile(ShaderType.Compute, shaderCode);
             _computeShader = new ID3D11ComputeShader((nint)factory.CreateShader(ShaderType.Compute, il.Span));
+            _shaderReflection.Add(ShaderType.Compute, Compiler.Reflect<ID3D11ShaderReflection>(il.Span));
+        }
+        
+        foreach (var reflection in _shaderReflection)
+        {
+            Dictionary<string, ShaderConstant> constants = new();
+            for (int i = 0; i < reflection.Value.ConstantBuffers.Length; i++)
+            {
+                ConstantBufferDescription info = reflection.Value.ConstantBuffers[i].Description;
+
+                var constant = DxContext.Context.Device.CreateBuffer(new BufferDescription(info.Size, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
+                constants.Add(info.Name, new ShaderConstant((uint)i, constant));
+            }
+            _constantBuffers.Add(reflection.Key, constants);
         }
     }
     
@@ -130,16 +161,19 @@ public class DxShader : IShader
         ctx.CSSetShader(_computeShader);
     }
 
-    public void SetVertexAttrib(List<VertexAttrib> vertexAttribs)
+    public void SetVertexAttrib(List<VertexAttrib> vertexAttribs) { }
+    
+    public void ConfigVertexAttrib(ReadOnlyMemory<byte> vsShaderByte)
     {
-        InputElementDescription[] inputElements = new InputElementDescription[_vsReflection.InputParameters.Length];
+        ID3D11ShaderReflection reflection = _shaderReflection[ShaderType.Vertex];
+        InputElementDescription[] inputElements = new InputElementDescription[reflection.InputParameters.Length];
 
         uint offset = 0;
         uint slot = 0;
         for (int i = 0; i < inputElements.Length; i++)
         {
             ref InputElementDescription refInputElement = ref inputElements[i];
-            var inputParameter = _vsReflection.InputParameters[i];
+            var inputParameter = reflection.InputParameters[i];
 
             if (slot != inputParameter.Stream)
                 offset = 0;
@@ -175,7 +209,7 @@ public class DxShader : IShader
             slot = inputParameter.Stream;
         }
     
-        _inputLayout = DxContext.Context.Device.CreateInputLayout(inputElements, _vsBytes.Span);
+        _inputLayout = DxContext.Context.Device.CreateInputLayout(inputElements, vsShaderByte.Span);
     }
 
     public void UploadConstantMat44(string constantName, Matrix4x4 mat, ShaderType visibleShader)
@@ -190,37 +224,42 @@ public class DxShader : IShader
     private unsafe void UploadContextData<T>(string constantName, ref T data, ShaderType visibleShader) where T : struct
     {
         var ctx = DxContext.Context;
+        if (!_constantBuffers.TryGetValue(visibleShader, out var buffer))
+        {
+            Log.Logger.Error($"Shader {constantName} does not exist");
+            return;
+        }
         
-        if (!_constantBuffer.TryGetValue(constantName, out var constantBuffer))
+        if (!buffer.TryGetValue(constantName, out var constantBuffer))
             return;
         
         switch (visibleShader)
         {
             case ShaderType.Vertex:
-                ctx.VSSetConstantBuffer(constantBuffer.slot, constantBuffer.buffer);
+                ctx.VSSetConstantBuffer(constantBuffer.slot, constantBuffer.constantBuffer);
                 break;
             case ShaderType.Pixel:
-                ctx.PSSetConstantBuffer(constantBuffer.slot, constantBuffer.buffer);
+                ctx.PSSetConstantBuffer(constantBuffer.slot, constantBuffer.constantBuffer);
                 break;
             case ShaderType.Hull:
-                ctx.HSSetConstantBuffer(constantBuffer.slot, constantBuffer.buffer);
+                ctx.HSSetConstantBuffer(constantBuffer.slot, constantBuffer.constantBuffer);
                 break;
             case ShaderType.Domain:
-                ctx.DSSetConstantBuffer(constantBuffer.slot, constantBuffer.buffer);
+                ctx.DSSetConstantBuffer(constantBuffer.slot, constantBuffer.constantBuffer);
                 break;
             case ShaderType.Geometry:
-                ctx.GSSetConstantBuffer(constantBuffer.slot, constantBuffer.buffer);
+                ctx.GSSetConstantBuffer(constantBuffer.slot, constantBuffer.constantBuffer);
                 break;
             case ShaderType.Compute:
-                ctx.CSSetConstantBuffer(constantBuffer.slot, constantBuffer.buffer);
+                ctx.CSSetConstantBuffer(constantBuffer.slot, constantBuffer.constantBuffer);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(visibleShader), visibleShader, null);
         }
         
-        var dataPtr = ctx.Map(constantBuffer.buffer, MapMode.WriteDiscard).DataPointer;
-        
+        var dataPtr = ctx.Map(constantBuffer.constantBuffer, MapMode.WriteDiscard).DataPointer;
         Unsafe.Copy((void*)dataPtr, ref data);
+        ctx.Unmap(constantBuffer.constantBuffer);
     }
 
     public static IShader Create(IResourcesFactory factory, string shaderCode, bool isBaseShader = true) =>

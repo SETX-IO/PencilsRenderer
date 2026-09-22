@@ -5,11 +5,18 @@ namespace Pencils.Platform.DirectX11;
 
 public class DxMesh : IMesh
 {
+    private uint _vertexCount;
     public IIndexBuffer? IndexBuffer { get; private set; }
     public List<IVertexBuffer> VertexBuffers { get; }
     public List<VertexAttrib> VertexAttribs { get; }
-    
-    public uint VertexCount { get; private set; }
+
+    public uint VertexCount
+    {
+        get
+        {
+            return IndexBuffer?.Count ?? _vertexCount;
+        }
+    }
 
     public DxMesh()
     {
@@ -24,7 +31,7 @@ public class DxMesh : IMesh
             VertexAttribs.Add(new VertexAttrib(attribType, (uint)VertexBuffers.Count));
         }
 
-        VertexCount += buffer.Count;
+        _vertexCount += buffer.Count;
         VertexBuffers.Add(buffer);
     } 
 
