@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
-using System.Numerics;
 using Pencils.Platform.DirectX11;
 using Pencils.RendererApi;
 using Serilog;

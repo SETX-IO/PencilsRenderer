@@ -1,4 +1,6 @@
-﻿namespace Pencils.RendererApi;
+﻿using System;
+
+namespace Pencils.RendererApi;
 
 public interface ITexture
 {
@@ -6,4 +8,7 @@ public interface ITexture
     uint Height { get; }
 
     void Bind(uint slot);
+    void Unbind(uint slot);
+
+    void SetData(ReadOnlySpan<byte> data);
 }

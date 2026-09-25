@@ -13,12 +13,18 @@ struct Varyings
 cbuffer MvpMat : register(b0) {
     float4x4 mvp; 
 }
+
+cbuffer Transform : register(b1)
+{
+    float4x4 transform;
+}
         
 Varyings vert(Attributes In)
 {
     Varyings Out;
             
     Out.position = float4(In.position, 1.0f);
+    Out.position = mul(Out.position, transform);
     Out.position = mul(Out.position, mvp);
         
     Out.color = In.color;
@@ -29,8 +35,17 @@ Varyings vert(Attributes In)
 Texture2D tex : register(t0);
 SamplerState samLineear : register(s0);
         
+cbuffer Render2DData : register(b0) {
+    float3 color; 
+}
+
+cbuffer TextureInfo : register(b1) {
+    float tilingFactor;
+}
+
 float4 frag(Varyings In) : SV_Target
 {
-    return tex.Sample(samLineear, In.color.xy);
+    return tex.Sample(samLineear, In.color.xy * tilingFactor) * float4(color, 1.0f);
+    // return tex.Sample(samLineear, In.color.xy) * float4(color, 1.0f);
     // return float4(In.color.xy, 0, 1);
 }

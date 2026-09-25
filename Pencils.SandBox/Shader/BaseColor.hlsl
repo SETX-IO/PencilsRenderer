@@ -11,12 +11,18 @@ struct Varyings
 cbuffer MvpMat : register(b0) {
     float4x4 mvp; 
 }
+
+cbuffer Transform
+{
+    float4x4 transform;
+}
         
 Varyings vert(Attributes In)
 {
     Varyings Out;
             
     Out.position = float4(In.position, 1.0f);
+    Out.position = mul(Out.position, transform);
     Out.position = mul(Out.position, mvp);
             
     return Out;

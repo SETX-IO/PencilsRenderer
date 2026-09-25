@@ -1,51 +1,77 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 namespace Pencils;
+
+public enum CameraType
+{
+    Perspective,
+    Orthographic
+}
 
 public class Camera
 {
     private static Vector3 _front = Vector3.UnitZ;
     private static Vector3 _up = Vector3.UnitY;
     
-    private float _fov;
-    private float _aspect;
-    private Vector3 _rotation;
-    private Vector3 _position;
+    private CameraData _data;
 
-    private Matrix4x4 _view => Matrix4x4.CreateLookAtLeftHanded(_position,  _position + _front, _up);
-    private Matrix4x4 _projection => Matrix4x4.CreatePerspectiveFieldOfViewLeftHanded(float.DegreesToRadians(_fov), _aspect, 1, 100);
-
+    private Matrix4x4 _view => _data.cameraType switch
+    {
+        CameraType.Perspective => Matrix4x4.CreateLookAtLeftHanded(_data.position, _data.position + _front, _up),
+        CameraType.Orthographic => Matrix4x4.Identity,
+        _ => throw new ArgumentOutOfRangeException()
+    };
+    
+    private Matrix4x4 _projection => _data.cameraType switch
+    {
+        CameraType.Perspective => Matrix4x4.CreatePerspectiveFieldOfViewLeftHanded(float.DegreesToRadians(_data.fov),
+            _data.aspect, 1, 100),
+        CameraType.Orthographic => Matrix4x4.CreateOrthographicLeftHanded(_data.zoom * _data.aspect, _data.zoom, -100f, 100f),
+        _ => throw new ArgumentOutOfRangeException()
+    };
+    
     public Vector3 Position
     {
-        get => _position;
-        set => _position = value;
+        get => _data.position;
+        set => _data.position = value;
     }
     
     public Vector3 Rotation { 
-        get => _rotation;
-        set => _rotation = value;
+        get => _data.rotation;
+        set => _data.rotation = value;
     }
 
     public float Fov
     {
-        get => _fov;
-        set => _fov = value;
+        get => _data.fov;
+        set => _data.fov = value;
+    }
+    
+    public float Zoom
+    {
+        get => _data.zoom; 
+        set => _data.zoom = value;
     }
     
     public Matrix4x4 CameraMatrix => _view * _projection;
     
-    public Camera(int width, int height)
+    public Camera(int width, int height, CameraType type = CameraType.Perspective)
     {
-        _aspect = (float)width / height;
-        _fov = 45f;
+        _data.cameraType = type;
+        
+        _data.aspect = (float)width / height;
+        
+        _data.fov = 45f;
     }
 
-    public Camera()
+    public Camera(CameraType type = CameraType.Perspective)
     {
-        _aspect = 16f / 9f;
-        _fov = 45f;
+        _data.cameraType = type;
+        _data.aspect = 16f / 9f;
+        _data.fov = 45f;
     }
 
-    public void SetAspect(int width, int height) => _aspect = (float)width / height;
+    public void SetAspect(int width, int height) => _data.aspect = (float)width / height;
     
 }

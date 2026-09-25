@@ -15,6 +15,7 @@ public class DxContext : IGraphicsContext
     private ID3D11DeviceContext context;
     private IDXGISwapChain swapChain;
     private ID3D11RenderTargetView _rtv;
+    private ID3D11DepthStencilView _dsv;
     private Vortice.Mathematics.Color _clearColor;
     private readonly nint hwnd;
 
@@ -61,6 +62,11 @@ public class DxContext : IGraphicsContext
         using var surface = swapChain.GetBuffer<ID3D11Resource>(0);
         _rtv = device.CreateRenderTargetView(surface);
         
+        var depthViewDesc = new DepthStencilViewDescription(DepthStencilViewDimension.Texture2D);
+        Texture2DDescription depthDesc = new(Format.D24_UNorm_S8_UInt, swapChain.Description.BufferDescription.Width, swapChain.Description.BufferDescription.Height, 1, 1, BindFlags.DepthStencil);
+        var depthTexture2D = device.CreateTexture2D(depthDesc);
+        _dsv = device.CreateDepthStencilView(depthTexture2D, depthViewDesc);
+        
         ResourcesFactory = new DxResourcesFactory(this);
         IsInitialized = true;
     }
@@ -88,7 +94,8 @@ public class DxContext : IGraphicsContext
     {
         swapChain.Present(0, PresentFlags.None);
         
-        context.OMSetRenderTargets(_rtv);
+        context.OMSetRenderTargets(_rtv, _dsv);
         context.ClearRenderTargetView(_rtv, _clearColor);
+        context.ClearDepthStencilView(_dsv, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
     }
 }

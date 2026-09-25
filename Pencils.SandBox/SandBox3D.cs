@@ -60,7 +60,7 @@ public class SandBox3D : ISandBox
         
         shader.SetVertexAttrib(_mesh.VertexAttribs);
 
-        _texture = DxTexture2D.Create(graphicsContext, "image/container.jpg");
+        _texture = DxTexture2D.Create(graphicsContext.ResourcesFactory, "image/container.jpg");
         
         _renderer.RCommand.DefaultPrimitiveTopology();
     }

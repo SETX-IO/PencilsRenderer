@@ -212,14 +212,27 @@ public class DxShader : IShader
         _inputLayout = DxContext.Context.Device.CreateInputLayout(inputElements, vsShaderByte.Span);
     }
 
+    public void UploadConstantStruct<T>(string constantName, T value, ShaderType visibleShader = ShaderType.Vertex) where T : struct
+        => UploadContextData(constantName, ref value, visibleShader);
+
     public void UploadConstantMat44(string constantName, Matrix4x4 mat, ShaderType visibleShader)
     {
         mat = Matrix4x4.Transpose(mat);
         UploadContextData(constantName, ref mat, visibleShader);
     }
 
-    public void UploadConstantFloat3(string constantName, Vector3 vec3, ShaderType visibleShader = ShaderType.Vertex) =>
-        UploadContextData(constantName, ref vec3, visibleShader);
+    public void UploadConstantFloat(string constantName, float value, ShaderType visibleShader = ShaderType.Vertex)
+        => UploadContextData(constantName, ref value, visibleShader);
+
+    public void UploadConstantFloat2(string constantName, Vector2 value, ShaderType visibleShader = ShaderType.Vertex)
+        => UploadContextData(constantName, ref value, visibleShader);
+
+    public void UploadConstantFloat3(string constantName, Vector3 value, ShaderType visibleShader = ShaderType.Vertex) =>
+        UploadContextData(constantName, ref value, visibleShader);
+
+    public void UploadConstantFloat4(string constantName, Vector4 value, ShaderType visibleShader = ShaderType.Vertex) 
+        => UploadContextData(constantName, ref value, visibleShader);
+
 
     private unsafe void UploadContextData<T>(string constantName, ref T data, ShaderType visibleShader) where T : struct
     {

@@ -2,6 +2,6 @@
 
 public interface ITexture2D : ITexture
 {
-    static abstract ITexture2D Create(IGraphicsContext graphicsContext, string path);
-    static abstract ITexture2D Create(IGraphicsContext graphicsContext);
+    static abstract ITexture2D Create(IResourcesFactory factory, string path);
+    static abstract ITexture2D Create(IResourcesFactory factory, uint width, uint height);
 }

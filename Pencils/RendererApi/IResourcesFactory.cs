@@ -40,4 +40,5 @@ public interface IResourcesFactory
     // 
     long CreateShader(ShaderType shaderType, ReadOnlySpan<byte> shaderIl);
     long CreateTexture2D(string path, out uint width, out uint height, Texture2DFormat format = Texture2DFormat.RGBA8);
+    long CreateTexture2D(uint width, uint height, Texture2DFormat format = Texture2DFormat.RGBA8);
 }

@@ -79,4 +79,15 @@ public unsafe class DxResourcesFactory(DxContext context) : IResourcesFactory
 
         return srv.NativePointer.ToInt64();
     }
+
+    public long CreateTexture2D(uint width, uint height, Texture2DFormat format = Texture2DFormat.RGBA8)
+    {
+        Texture2DDescription textureDesc = new(Format.R8G8B8A8_UNorm, width, height, 1, 1);
+        ShaderResourceViewDescription srvDesc = new(ShaderResourceViewDimension.Texture2D, textureDesc.Format);
+        
+        var texture2D = _device.CreateTexture2D(textureDesc);
+        var srv = _device.CreateShaderResourceView(texture2D, srvDesc);
+
+        return srv.NativePointer.ToInt64();
+    }
 }
