@@ -26,7 +26,7 @@ public class SandBox2D(IGraphicsContext graphicsContext) : ISandBox
 
         Log.Logger.Information("Initialized DxContext");
         
-        _checkerBoardTexture = DxTexture2D.Create(graphicsContext.ResourcesFactory, "image/container.jpg");
+        _checkerBoardTexture = DxTexture2D.Create("image/container.jpg");
         
         _renderer.RCommand.DefaultPrimitiveTopology();
     }
@@ -35,8 +35,10 @@ public class SandBox2D(IGraphicsContext graphicsContext) : ISandBox
     {
         _renderer.BeginScene(_cameraData.CameraMatrix);
 
-        _renderer.DrawQuad(Vector2.Zero, Vector2.One, Color.DodgerBlue);
-        _renderer.DrawQuad(Vector2.Create(0, -1f), Vector2.One * 2, _checkerBoardTexture);
+        _renderer.DrawQuad(-Vector2.UnitY * 0.55f, Vector2.One, Color.DodgerBlue);
+        _renderer.DrawQuad(-Vector2.UnitX * 0.7f, Vector2.One * 0.5f, Color.Brown);
+        // _renderer.DrawQuad(Vector2.Create(-0.7f, -0.55f), Vector2.One * 0.5f, Color.DimGray);
+        _renderer.DrawQuad(Vector2.Create(-0.7f, -0.7f), Vector2.One, _checkerBoardTexture);
 
         _renderer.EndScene();
     }

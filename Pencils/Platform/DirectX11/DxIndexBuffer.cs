@@ -11,16 +11,16 @@ public class DxIndexBuffer : IIndexBuffer
     
     public uint Count { get; }
     
-    private DxIndexBuffer(IResourcesFactory factory, uint count)
+    private DxIndexBuffer(uint count)
     {
         Count = count;
-        _buffer = new ID3D11Buffer((nint)factory.CreateIndexBuffer(Count));
+        _buffer = new ID3D11Buffer((nint)DxContext.ResourcesFactory.CreateIndexBuffer(Count));
     }
     
-    private DxIndexBuffer(IResourcesFactory factory, ReadOnlySpan<ushort> indices)
+    private DxIndexBuffer(ReadOnlySpan<ushort> indices)
     {
         Count = (uint)indices.Length;
-        _buffer = new ID3D11Buffer((nint)factory.CreateIndexBuffer(indices));
+        _buffer = new ID3D11Buffer((nint)DxContext.ResourcesFactory.CreateIndexBuffer(indices));
     }
     
     public void Bind()
@@ -33,13 +33,13 @@ public class DxIndexBuffer : IIndexBuffer
         DxContext.Context.IASetIndexBuffer(null, Format.R16_UInt, 0);
     }
 
-    public static IIndexBuffer Create(IGraphicsContext context, uint count)
+    public static IIndexBuffer Create(uint count)
     {
-        return new DxIndexBuffer(context.ResourcesFactory, count);
+        return new DxIndexBuffer(count);
     }
     
-    public static IIndexBuffer Create(IGraphicsContext context, ReadOnlySpan<ushort> indices)
+    public static IIndexBuffer Create(ReadOnlySpan<ushort> indices)
     {
-        return new DxIndexBuffer(context.ResourcesFactory, indices);
+        return new DxIndexBuffer(indices);
     }
 }

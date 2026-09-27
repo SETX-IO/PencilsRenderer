@@ -9,9 +9,17 @@ using Vortice.DXGI;
 
 namespace Pencils.Platform.DirectX11;
 
-public unsafe class DxResourcesFactory(DxContext context) : IResourcesFactory
+public unsafe class DxResourcesFactory : IResourcesFactory
 {
-    private ID3D11Device _device = context.Device;
+    private readonly ID3D11Device _device;
+
+    public DxResourcesFactory(IGraphicsContext context)
+    {
+        if (context.Api != GraphicsApi.DirectX11)
+            throw new Exception("GraphicsApi not is DirectX11.");
+        
+        _device = ((DxContext)context).Device;
+    }
 
     public long CreateVertexBuffer(uint size)
     {
@@ -80,10 +88,11 @@ public unsafe class DxResourcesFactory(DxContext context) : IResourcesFactory
         return srv.NativePointer.ToInt64();
     }
 
-    public long CreateTexture2D(uint width, uint height, Texture2DFormat format = Texture2DFormat.RGBA8)
+    public long CreateTexture2D(uint width, uint height, Texture2DFormat format, uint arraySize)
     {
-        Texture2DDescription textureDesc = new(Format.R8G8B8A8_UNorm, width, height, 1, 1);
-        ShaderResourceViewDescription srvDesc = new(ShaderResourceViewDimension.Texture2D, textureDesc.Format);
+        Texture2DDescription textureDesc = new(Format.R8G8B8A8_UNorm, width, height, arraySize, 1);
+        ShaderResourceViewDimension dimension = arraySize == 1 ? ShaderResourceViewDimension.Texture2D : ShaderResourceViewDimension.Texture2DArray;
+        ShaderResourceViewDescription srvDesc = new(dimension, textureDesc.Format);
         
         var texture2D = _device.CreateTexture2D(textureDesc);
         var srv = _device.CreateShaderResourceView(texture2D, srvDesc);

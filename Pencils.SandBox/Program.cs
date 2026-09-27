@@ -37,7 +37,6 @@ public class App
         options.Size = new Vector2D<int>(width, height);
 
         _window = Window.Create(options);
-
         _sandBoxs = [];
         
         _window.Load += OnInit;
@@ -56,9 +55,7 @@ public class App
         _sandBoxs.Add(new SandBox2D(rendererContext));
         
         foreach (var sandBox in _sandBoxs)
-        {
             sandBox.Init(_window.Size.X, _window.Size.Y);
-        }
     }
 
     private void OnRenderer(double obj)

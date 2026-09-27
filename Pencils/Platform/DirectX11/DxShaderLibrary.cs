@@ -6,12 +6,10 @@ namespace Pencils.Platform.DirectX11;
 
 public class DxShaderLibrary : IShaderLibrary
 {
-    private readonly IResourcesFactory _factory;
     private readonly Dictionary<string, IShader> _shaders;
     
-    private DxShaderLibrary(IResourcesFactory factory)
+    private DxShaderLibrary()
     {
-        _factory = factory;
         _shaders = new Dictionary<string, IShader>();
     }
     
@@ -29,7 +27,7 @@ public class DxShaderLibrary : IShaderLibrary
         if (_shaders.TryGetValue(name, out shader))
             return shader;
             
-        shader = DxShader.Create(_factory, shaderPath);
+        shader = DxShader.Create(shaderPath);
         _shaders.TryAdd(shader.Name, shader);
         
         return shader;
@@ -40,8 +38,8 @@ public class DxShaderLibrary : IShaderLibrary
         throw new System.NotImplementedException();
     }
 
-    public static IShaderLibrary Create(IGraphicsContext context)
+    public static IShaderLibrary Create()
     {
-        return new DxShaderLibrary(context.ResourcesFactory);
+        return new DxShaderLibrary();
     }
 }

@@ -35,7 +35,7 @@ Varyings vert(Attributes In)
     return Out;
 }
         
-Texture2DArray tex : register(t0);
+Texture2D tex[32] : register(t0);
 SamplerState samLineear : register(s0);
         
 cbuffer Render2DData : register(b0) {
@@ -44,12 +44,11 @@ cbuffer Render2DData : register(b0) {
 
 cbuffer TextureInfo : register(b1) {
     float tilingFactor;
+    float texIndex;
 }
 
 float4 frag(Varyings In) : SV_Target
 {
     // In.texCoord.xy *= tilingFactor;
-    float4 color = tex.Sample(samLineear, In.texCoord) * float4(In.color, 1.0f);
-    return color;
-    // return float4(In.texCoord, 1.0f);
+    return tex[In.texCoord.z].Sample(samLineear, In.texCoord.xy) * float4(In.color, 1.0f);
 }

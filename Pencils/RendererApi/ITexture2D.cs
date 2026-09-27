@@ -1,7 +1,9 @@
-﻿namespace Pencils.RendererApi;
+﻿using System;
 
-public interface ITexture2D : ITexture
+namespace Pencils.RendererApi;
+
+public interface ITexture2D : ITexture, IEquatable<ITexture>
 {
-    static abstract ITexture2D Create(IResourcesFactory factory, string path);
-    static abstract ITexture2D Create(IResourcesFactory factory, uint width, uint height);
+    static abstract ITexture2D Create(string path);
+    static abstract ITexture2D Create(uint width, uint height, uint arraySize = 1);
 }

@@ -17,8 +17,8 @@ namespace Pencils.Platform.DirectX11;
 
 public class ShaderConstant(uint slot, ID3D11Buffer buffer)
 {
-    public uint slot = slot;
-    public ID3D11Buffer constantBuffer = buffer;
+    public readonly uint slot = slot;
+    public readonly ID3D11Buffer constantBuffer = buffer;
 }
 
 public class DxShader : IShader
@@ -41,7 +41,7 @@ public class DxShader : IShader
     
     public string Name { get; }
 
-    private DxShader(IResourcesFactory factory, string shaderPath)
+    private DxShader(string shaderPath)
     {
         _isBaseShader = true;
         Name = Path.GetFileNameWithoutExtension(shaderPath);
@@ -49,6 +49,7 @@ public class DxShader : IShader
 
         var shaderBytes = CompileForFile(ShaderType.Vertex, shaderPath);
         var vsShaderBytes = shaderBytes;
+        var factory = DxContext.ResourcesFactory;
         
         _shaderReflection.Add(ShaderType.Vertex, Compiler.Reflect<ID3D11ShaderReflection>(shaderBytes.Span));
         _vertexShader = new ID3D11VertexShader((nint)factory.CreateShader(ShaderType.Vertex, shaderBytes.Span));
@@ -73,10 +74,11 @@ public class DxShader : IShader
         ConfigVertexAttrib(vsShaderBytes);
     }
     
-    private DxShader(IResourcesFactory factory, string shaderCode, bool isBaseShader)
+    private DxShader(string shaderCode, bool isBaseShader)
     {
+        var factory = DxContext.ResourcesFactory;
         _isBaseShader = isBaseShader;
-        _constantBuffers = new Dictionary<ShaderType, Dictionary<string, ShaderConstant>>();
+        _constantBuffers = new Dictionary<ShaderType, Dictionary<string, ShaderConstant>>(); 
 
         switch (isBaseShader)
         {
@@ -144,21 +146,21 @@ public class DxShader : IShader
     
     public void Use()
     {
-        var ctx = DxContext.Context;
+        var rCmd = DxContext.Context;
 
         if (_isBaseShader)
         {
             if (_inputLayout != null)
-                ctx.IASetInputLayout(_inputLayout);
+                rCmd.IASetInputLayout(_inputLayout);
             
-            ctx.VSSetShader(_vertexShader);
-            ctx.PSSetShader(_pixelShader);
+            rCmd.VSSetShader(_vertexShader);
+            rCmd.PSSetShader(_pixelShader);
         }
         
-        ctx.HSSetShader(_hullShader);
-        ctx.DSSetShader(_domainShader);
-        ctx.GSSetShader(_geometryShader);
-        ctx.CSSetShader(_computeShader);
+        rCmd.HSSetShader(_hullShader);
+        rCmd.DSSetShader(_domainShader);
+        rCmd.GSSetShader(_geometryShader);
+        rCmd.CSSetShader(_computeShader);
     }
 
     public void SetVertexAttrib(List<VertexAttrib> vertexAttribs) { }
@@ -275,12 +277,12 @@ public class DxShader : IShader
         ctx.Unmap(constantBuffer.constantBuffer);
     }
 
-    public static IShader Create(IResourcesFactory factory, string shaderCode, bool isBaseShader = true) =>
-        new DxShader(factory, shaderCode, isBaseShader);
+    public static IShader Create(string shaderCode, bool isBaseShader = true) =>
+        new DxShader(shaderCode, isBaseShader);
 
-    public static IShader Create(IResourcesFactory factory, string shaderPath)
+    public static IShader Create(string shaderPath)
     {
-        return new DxShader(factory, shaderPath);
+        return new DxShader(shaderPath);
     }
 
     public static ReadOnlyMemory<byte> Compile(ShaderType type, string shaderCode)

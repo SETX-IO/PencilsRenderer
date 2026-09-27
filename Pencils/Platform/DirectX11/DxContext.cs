@@ -9,26 +9,29 @@ namespace Pencils.Platform.DirectX11;
 
 public class DxContext : IGraphicsContext
 {
-    private uint _backBufferCount;
-    
     private ID3D11Device device;
-    private ID3D11DeviceContext context;
     private IDXGISwapChain swapChain;
     private ID3D11RenderTargetView _rtv;
     private ID3D11DepthStencilView _dsv;
     private Vortice.Mathematics.Color _clearColor;
     private readonly nint hwnd;
-
+    
     public static bool IsInitialized;
     public ID3D11Device Device => device;
-
+    
     public static ID3D11DeviceContext Context
     {
         get => !IsInitialized ? throw new InvalidOperationException("DxContext.Context not initialized") : field;
         private set;
     }
 
-    public IResourcesFactory ResourcesFactory { get; private set; }
+
+    public static IResourcesFactory ResourcesFactory 
+    {
+        get => !IsInitialized ? throw new InvalidOperationException("DxContext.Context not initialized") : field;
+        private set;
+    }
+    
     public GraphicsApi Api { get; }
 
     public DxContext(nint hwnd)
@@ -55,7 +58,6 @@ public class DxContext : IGraphicsContext
         D3D11.D3D11CreateDeviceAndSwapChain(null, DriverType.Hardware, DeviceCreationFlags.VideoSupport, [FeatureLevel.Level_11_1], swDesc, out var sw, out ID3D11Device? device, out _, out var context);
 
         this.device = device;
-        this.context = context;
         Context = context;
         swapChain = sw;
 
@@ -64,7 +66,7 @@ public class DxContext : IGraphicsContext
         
         var depthViewDesc = new DepthStencilViewDescription(DepthStencilViewDimension.Texture2D);
         Texture2DDescription depthDesc = new(Format.D24_UNorm_S8_UInt, swapChain.Description.BufferDescription.Width, swapChain.Description.BufferDescription.Height, 1, 1, BindFlags.DepthStencil);
-        var depthTexture2D = device.CreateTexture2D(depthDesc);
+        using var depthTexture2D = device.CreateTexture2D(depthDesc);
         _dsv = device.CreateDepthStencilView(depthTexture2D, depthViewDesc);
         
         ResourcesFactory = new DxResourcesFactory(this);
@@ -73,7 +75,7 @@ public class DxContext : IGraphicsContext
 
     public void SetBufferColor(Color color) => _clearColor = new Vortice.Mathematics.Color(color.R, color.G, color.B, color.A);
     
-    public void ClearBuffer() => context.ClearRenderTargetView(_rtv, _clearColor);
+    public void ClearBuffer() => Context.ClearRenderTargetView(_rtv, _clearColor);
     
 
     public void ReSizeBuffer(uint width, uint height)
@@ -94,8 +96,8 @@ public class DxContext : IGraphicsContext
     {
         swapChain.Present(0, PresentFlags.None);
         
-        context.OMSetRenderTargets(_rtv, _dsv);
-        context.ClearRenderTargetView(_rtv, _clearColor);
-        context.ClearDepthStencilView(_dsv, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
+        Context.OMSetRenderTargets(_rtv, _dsv);
+        Context.ClearRenderTargetView(_rtv, _clearColor);
+        Context.ClearDepthStencilView(_dsv, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
     }
 }

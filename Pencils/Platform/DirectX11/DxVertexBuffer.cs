@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Pencils.RendererApi;
 using SharpGen.Runtime;
@@ -18,26 +19,40 @@ public class DxVertexBuffer : IVertexBuffer
     
     public VertexAttribType[] AttribType { get; private set; }
     
-    private DxVertexBuffer(IResourcesFactory factory, uint stride, uint count)
+    private DxVertexBuffer(uint stride, uint count)
     {
         _stride = stride;
         Count = count;
-        _buffer = new ID3D11Buffer((nint)factory.CreateVertexBuffer(stride * count));
+        _buffer = new ID3D11Buffer((nint)DxContext.ResourcesFactory.CreateVertexBuffer(stride * count));
 
         AttribType = [];
     }
 
-    private DxVertexBuffer(IResourcesFactory factory, nint dataPtr, uint stride, uint count)
+    private DxVertexBuffer(nint dataPtr, uint stride, uint count)
     {
         _stride = stride;
         Count = count;
-        _buffer = new ID3D11Buffer((nint)factory.CreateVertexBuffer(dataPtr, stride * count));
+        _buffer = new ID3D11Buffer((nint)DxContext.ResourcesFactory.CreateVertexBuffer(dataPtr, stride * count));
         
         AttribType = [];
     }
     
     public void SetVertexAttribs(params VertexAttribType[] vertexAttris) => AttribType = vertexAttris;
     
+    public nint Map<T>() where T : struct => DxContext.Context.Map(_buffer, MapMode.WriteDiscard).DataPointer;
+
+
+    public void CloseMap() => DxContext.Context.Unmap(_buffer);
+
+    public unsafe void SetData<T>(Span<T> data) where T : struct
+    {
+        var ctx = DxContext.Context;
+
+        var dataPtr = ctx.Map(_buffer, MapMode.WriteDiscard).DataPointer;
+        Unsafe.Copy((void*)dataPtr, ref data.GetPinnableReference());
+        ctx.Unmap(_buffer);
+    }
+
     public void Bind()
     {
         if (CurrentSlot >= MaxSlotCount)
@@ -52,13 +67,13 @@ public class DxVertexBuffer : IVertexBuffer
         CurrentSlot--;
     }
     
-    public static IVertexBuffer Create<T>(IGraphicsContext context, uint count) where T : unmanaged
+    public static IVertexBuffer Create<T>(uint count) where T : unmanaged
     {
-        return new DxVertexBuffer(context.ResourcesFactory, (uint)Unsafe.SizeOf<T>(), count);
+        return new DxVertexBuffer((uint)Unsafe.SizeOf<T>(), count);
     }
 
-    public static unsafe IVertexBuffer Create<T>(IGraphicsContext context, T[] vertex) where T : unmanaged
+    public static unsafe IVertexBuffer Create<T>(T[] vertex) where T : unmanaged
     {
-        return new DxVertexBuffer(context.ResourcesFactory, (nint)vertex.GetPointerUnsafe(), (uint)Unsafe.SizeOf<T>(), (uint)vertex.Length);
+        return new DxVertexBuffer((nint)vertex.GetPointerUnsafe(), (uint)Unsafe.SizeOf<T>(), (uint)vertex.Length);
     }
 }

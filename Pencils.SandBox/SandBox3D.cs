@@ -28,10 +28,10 @@ public class SandBox3D : ISandBox
         _renderer = new Renderer(graphicsContext);
         
         Vertex[] a = [
-            new(new Vector3(-0.5f,  0.5f, 0), new Vector3(0, 1, 0)),
-            new(new Vector3( 0.5f,  0.5f, 0), new Vector3(1, 1, 0)),
-            new(new Vector3( 0.5f, -0.5f, 0), new Vector3(1, 0, 0)),
-            new(new Vector3(-0.5f, -0.5f, 0), new Vector3(0, 0, 0)),
+            new(new Vector3(-0.5f,  0.5f, 0), Vector3.One, new Vector3(Vector2.UnitY, 0)),
+            new(new Vector3( 0.5f,  0.5f, 0), Vector3.One, new Vector3(Vector2.One, 0)),
+            new(new Vector3( 0.5f, -0.5f, 0), Vector3.One, new Vector3(Vector2.UnitX, 0)),
+            new(new Vector3(-0.5f, -0.5f, 0), Vector3.One, new Vector3(Vector2.Zero, 0)),
         ];
 
         ushort[] ii =
@@ -49,18 +49,18 @@ public class SandBox3D : ISandBox
         Log.Logger.Information("Initialized DxContext");
         
         _mesh = DxMesh.Create();
-        var vertexBuffer = DxVertexBuffer.Create(graphicsContext, a);
+        var vertexBuffer = DxVertexBuffer.Create(a);
         vertexBuffer.SetVertexAttribs(VertexAttribType.Position3, VertexAttribType.Color3);
         
         _mesh.AddVertexBuffer(vertexBuffer);
-        _mesh.SetIndexBuffer(DxIndexBuffer.Create(graphicsContext, ii));
+        _mesh.SetIndexBuffer(DxIndexBuffer.Create(ii));
         
-        _shaderLibrary = DxShaderLibrary.Create(graphicsContext);
+        _shaderLibrary = DxShaderLibrary.Create();
         var shader = _shaderLibrary.Load("Shader/Texture.hlsl");
         
         shader.SetVertexAttrib(_mesh.VertexAttribs);
 
-        _texture = DxTexture2D.Create(graphicsContext.ResourcesFactory, "image/container.jpg");
+        _texture = DxTexture2D.Create("image/container.jpg");
         
         _renderer.RCommand.DefaultPrimitiveTopology();
     }
