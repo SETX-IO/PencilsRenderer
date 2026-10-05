@@ -39,18 +39,18 @@ public class DxVertexBuffer : IVertexBuffer
     
     public void SetVertexAttribs(params VertexAttribType[] vertexAttris) => AttribType = vertexAttris;
     
-    public nint Map<T>() where T : struct => DxContext.Context.Map(_buffer, MapMode.WriteDiscard).DataPointer;
+    public nint Map()=> DxContext.Context.Map(_buffer, MapMode.WriteDiscard).DataPointer;
 
 
     public void CloseMap() => DxContext.Context.Unmap(_buffer);
 
     public unsafe void SetData<T>(Span<T> data) where T : struct
     {
-        var ctx = DxContext.Context;
-
-        var dataPtr = ctx.Map(_buffer, MapMode.WriteDiscard).DataPointer;
+        var dataPtr = Map();
+        
         Unsafe.Copy((void*)dataPtr, ref data.GetPinnableReference());
-        ctx.Unmap(_buffer);
+        
+        CloseMap();
     }
 
     public void Bind()
@@ -76,4 +76,6 @@ public class DxVertexBuffer : IVertexBuffer
     {
         return new DxVertexBuffer((nint)vertex.GetPointerUnsafe(), (uint)Unsafe.SizeOf<T>(), (uint)vertex.Length);
     }
+
+    public void Dispose() => _buffer.Dispose();
 }

@@ -36,9 +36,15 @@ public interface IResourcesFactory
     /// retune IndexBuffer ptr or id
     /// </returns>
     long CreateIndexBuffer(ReadOnlySpan<ushort> indices);
+
+    long CreateConstantBuffer(uint size);
     
     // 
     long CreateShader(ShaderType shaderType, ReadOnlySpan<byte> shaderIl);
     long CreateTexture2D(string path, out uint width, out uint height, Texture2DFormat format = Texture2DFormat.RGBA8);
     long CreateTexture2D(uint width, uint height, Texture2DFormat format = Texture2DFormat.RGBA8, uint arraySize = 1);
+
+    long CreateRasterizerState(Cull cull, Fill fill);
+    long CreateDepthStencilState(DepthStencilInfo info);
+    long CreateBlendState(BlendStateInfo info);
 }

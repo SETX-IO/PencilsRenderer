@@ -11,6 +11,7 @@ public interface IMesh
     uint VertexCount { get; }
     
     void AddVertexBuffer(IVertexBuffer buffer);
+    void SetVertexBuffer(int index, IVertexBuffer buffer);
     void SetIndexBuffer(IIndexBuffer buffer);
     
     void Bind();

@@ -2,6 +2,7 @@
 using Pencils.Platform.DirectX11;
 using Pencils.RendererApi;
 using Serilog;
+using Vortice;
 using Vortice.Mathematics;
 
 namespace Pencils;
@@ -23,7 +24,6 @@ public class Renderer(IGraphicsContext gContext)
     
     private SceneData _sceneData;
     
-
     public void SetViewport(float width, float height, float depth)
     {
         _viewport = new Viewport(0, 0, width, height, 0f, depth);
@@ -41,7 +41,7 @@ public class Renderer(IGraphicsContext gContext)
 
         if (shader == null)
         {
-            Log.Logger.Error($"shader is null");
+            Log.Logger.Error("shader is null");
             return;
         }
         
@@ -65,8 +65,9 @@ public class Renderer(IGraphicsContext gContext)
         
     }
 
-    public void Clear()
+    public void SetScissor(int left, int top, int right, int bottom)
     {
-        gContext.ClearBuffer();
+        RawRect scissor = new(left, top, right, bottom);
+        _rCommand.SetScissor(scissor);
     }
 }

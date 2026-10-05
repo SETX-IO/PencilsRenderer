@@ -55,22 +55,16 @@ public class DxContext : IGraphicsContext
             SwapEffect = SwapEffect.FlipDiscard
         };
         
-        D3D11.D3D11CreateDeviceAndSwapChain(null, DriverType.Hardware, DeviceCreationFlags.VideoSupport, [FeatureLevel.Level_11_1], swDesc, out var sw, out ID3D11Device? device, out _, out var context);
+        D3D11.D3D11CreateDeviceAndSwapChain(null, DriverType.Hardware, DeviceCreationFlags.VideoSupport,
+            [FeatureLevel.Level_11_1], swDesc, out var sw, out ID3D11Device? device, out _, out var context);
 
         this.device = device;
         Context = context;
         swapChain = sw;
-
-        using var surface = swapChain.GetBuffer<ID3D11Resource>(0);
-        _rtv = device.CreateRenderTargetView(surface);
-        
-        var depthViewDesc = new DepthStencilViewDescription(DepthStencilViewDimension.Texture2D);
-        Texture2DDescription depthDesc = new(Format.D24_UNorm_S8_UInt, swapChain.Description.BufferDescription.Width, swapChain.Description.BufferDescription.Height, 1, 1, BindFlags.DepthStencil);
-        using var depthTexture2D = device.CreateTexture2D(depthDesc);
-        _dsv = device.CreateDepthStencilView(depthTexture2D, depthViewDesc);
-        
         ResourcesFactory = new DxResourcesFactory(this);
         IsInitialized = true;
+
+        CreateOmView();
     }
 
     public void SetBufferColor(Color color) => _clearColor = new Vortice.Mathematics.Color(color.R, color.G, color.B, color.A);
@@ -88,8 +82,7 @@ public class DxContext : IGraphicsContext
         if (!swapChain.ResizeBuffers(0, width, height).Success)
             return;
         
-        using var surface = swapChain.GetBuffer<ID3D11Resource>(0);
-        _rtv = device.CreateRenderTargetView(surface);
+        CreateOmView();
     }
 
     public void SwapBuffers()
@@ -99,5 +92,16 @@ public class DxContext : IGraphicsContext
         Context.OMSetRenderTargets(_rtv, _dsv);
         Context.ClearRenderTargetView(_rtv, _clearColor);
         Context.ClearDepthStencilView(_dsv, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
+    }
+
+    private void CreateOmView()
+    {
+        using var surface = swapChain.GetBuffer<ID3D11Resource>(0);
+        _rtv = device.CreateRenderTargetView(surface);
+        
+        var depthViewDesc = new DepthStencilViewDescription(DepthStencilViewDimension.Texture2D);
+        Texture2DDescription depthDesc = new(Format.D24_UNorm_S8_UInt, swapChain.Description.BufferDescription.Width, swapChain.Description.BufferDescription.Height, 1, 1, BindFlags.DepthStencil);
+        using var depthTexture2D = device.CreateTexture2D(depthDesc);
+        _dsv = device.CreateDepthStencilView(depthTexture2D, depthViewDesc);
     }
 }

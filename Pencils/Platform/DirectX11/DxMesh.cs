@@ -10,13 +10,7 @@ public class DxMesh : IMesh
     public List<IVertexBuffer> VertexBuffers { get; }
     public List<VertexAttrib> VertexAttribs { get; }
 
-    public uint VertexCount
-    {
-        get
-        {
-            return IndexBuffer?.Count ?? _vertexCount;
-        }
-    }
+    public uint VertexCount => IndexBuffer?.Count ?? _vertexCount;
 
     public DxMesh()
     {
@@ -33,7 +27,18 @@ public class DxMesh : IMesh
 
         _vertexCount += buffer.Count;
         VertexBuffers.Add(buffer);
-    } 
+    }
+
+    public void SetVertexBuffer(int index, IVertexBuffer buffer)
+    {
+        if (index == VertexBuffers.Count)
+        {
+            AddVertexBuffer(buffer);
+            return;
+        }
+        
+        VertexBuffers[index] = buffer;
+    }
 
     public void SetIndexBuffer(IIndexBuffer buffer) => IndexBuffer = buffer;
     

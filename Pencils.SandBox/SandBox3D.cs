@@ -50,15 +50,13 @@ public class SandBox3D : ISandBox
         
         _mesh = DxMesh.Create();
         var vertexBuffer = DxVertexBuffer.Create(a);
-        vertexBuffer.SetVertexAttribs(VertexAttribType.Position3, VertexAttribType.Color3);
+        vertexBuffer.SetVertexAttribs(VertexAttribType.Position3, VertexAttribType.Color3F);
         
         _mesh.AddVertexBuffer(vertexBuffer);
         _mesh.SetIndexBuffer(DxIndexBuffer.Create(ii));
         
         _shaderLibrary = DxShaderLibrary.Create();
-        var shader = _shaderLibrary.Load("Shader/Texture.hlsl");
-        
-        shader.SetVertexAttrib(_mesh.VertexAttribs);
+        _shaderLibrary.Load("Shader/Texture.hlsl");
 
         _texture = DxTexture2D.Create("image/container.jpg");
         

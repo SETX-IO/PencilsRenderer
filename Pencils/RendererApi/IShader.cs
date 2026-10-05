@@ -8,11 +8,10 @@ public interface IShader
     string Name { get; }
     
     void Use();
-    void SetVertexAttrib(List<VertexAttrib> vertexAttribs);
 
     void UploadConstantStruct<T>(string constantName, T value, ShaderType visibleShader = ShaderType.Vertex) where T : struct;
     
-    void UploadConstantMat44(string constantName, Matrix4x4 value, ShaderType visibleShader = ShaderType.Vertex);
+    void UploadConstantMat44(string constantName, Matrix4x4 value, bool isTranspose = true, ShaderType visibleShader = ShaderType.Vertex);
     
     void UploadConstantFloat(string constantName, float value, ShaderType visibleShader = ShaderType.Vertex);
     void UploadConstantFloat2(string constantName, Vector2 value, ShaderType visibleShader = ShaderType.Vertex);

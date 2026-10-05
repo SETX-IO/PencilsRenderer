@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Pencils.RendererApi;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
@@ -33,6 +34,20 @@ public class DxIndexBuffer : IIndexBuffer
         DxContext.Context.IASetIndexBuffer(null, Format.R16_UInt, 0);
     }
 
+    public nint Map()=> DxContext.Context.Map(_buffer, MapMode.WriteDiscard).DataPointer;
+
+
+    public void CloseMap() => DxContext.Context.Unmap(_buffer);
+
+    public unsafe void SetData<T>(Span<T> data) where T : struct
+    {
+        var dataPtr = Map();
+        
+        Unsafe.Copy((void*)dataPtr, ref data.GetPinnableReference());
+        
+        CloseMap();
+    }
+
     public static IIndexBuffer Create(uint count)
     {
         return new DxIndexBuffer(count);
@@ -42,4 +57,7 @@ public class DxIndexBuffer : IIndexBuffer
     {
         return new DxIndexBuffer(indices);
     }
+
+    public void Dispose() =>_buffer.Dispose();
+    
 }

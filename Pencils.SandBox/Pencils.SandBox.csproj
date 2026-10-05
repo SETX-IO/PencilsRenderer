@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Pencils.Extention\Pencils.Extention.csproj" />
       <ProjectReference Include="..\Pencils\Pencils.csproj" />
     </ItemGroup>
 
@@ -25,10 +26,6 @@
         <None Update="image\*.*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-    </ItemGroup>
-
-    <ItemGroup>
-      <ClCompile Include="Shader\BaseColor.hlsl" />
     </ItemGroup>
 
 </Project>

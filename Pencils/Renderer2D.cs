@@ -4,8 +4,7 @@ using System.Runtime.CompilerServices;
 using Pencils.Platform.DirectX11;
 using Pencils.RendererApi;
 using SharpGen.Runtime;
-using Vortice.Mathematics;
-using Color = System.Drawing.Color;
+using System.Drawing;
 
 namespace Pencils;
 
@@ -14,6 +13,7 @@ public struct Renderer2DStorage
     public const uint MaxQuad = 1000;
     public const uint MaxVertices = MaxQuad * 4;
     public const uint MaxIndices = MaxQuad * 6;
+    public Vector3[] quadPosition;
     
     public IMesh quadMesh;
     public IVertexBuffer quadVertexBuffer;
@@ -30,7 +30,6 @@ public struct Renderer2DStorage
 public class Renderer2D(IGraphicsContext context) : Renderer(context)
 {
     private Renderer2DStorage _data;
-    private IGraphicsContext _context = context;
     
     public void Init()
     {
@@ -39,15 +38,23 @@ public class Renderer2D(IGraphicsContext context) : Renderer(context)
         for (int i = 0; i < quadi.Length; i += 6)
         {
             quadi[i + 0] = (ushort)(offset + 0);
-            quadi[i + 1] = (ushort)(offset + 3);
+            quadi[i + 1] = (ushort)(offset + 1);
             quadi[i + 2] = (ushort)(offset + 2);
             
             quadi[i + 3] = (ushort)(offset + 2);
-            quadi[i + 4] = (ushort)(offset + 1);
+            quadi[i + 4] = (ushort)(offset + 3);
             quadi[i + 5] = (ushort)(offset + 0);
             
             offset += 4;
         }
+
+        _data.quadPosition =
+        [
+            new Vector3(-0.5f,  0.5f, 0),
+            new Vector3( 0.5f,  0.5f, 0),
+            new Vector3( 0.5f, -0.5f, 0),
+            new Vector3(-0.5f, -0.5f, 0)
+        ];
 
         _data.textureArray = new DxTexture2DArray(1024, 1024);
         
@@ -72,7 +79,7 @@ public class Renderer2D(IGraphicsContext context) : Renderer(context)
         _data.textureShader.Use();
         _data.textureShader.UploadConstantMat44("MvpMat", cameraMat);
 
-        _data.vertexBuffer = _data.quadVertexBuffer.Map<Vertex>();
+        _data.vertexBuffer = _data.quadVertexBuffer.Map();
         _data.vertexCount = 0;
     }
 
@@ -101,8 +108,9 @@ public class Renderer2D(IGraphicsContext context) : Renderer(context)
     public void DrawRotatedQuad(Vector2 position,  Vector2 size, float rotation, ITexture2D texture, float tilingFactor = 1f, Color color = default)
         => DrawRotatedQuad(Vector3.Create(position, 0f), size, rotation, texture, tilingFactor, color);
     
-    public unsafe void DrawQuad(Vector3 position, Vector2 size, Color color)
+    public void DrawQuad(Vector3 position, Vector2 size, Color color)
     {
+        Matrix4x4 transform = Matrix4x4.CreateScale(new Vector3(size, 1f)) * Matrix4x4.CreateTranslation(position);
         var colorVector = new Vector3(color.R / 255f, color.G / 255f, color.B / 255f);
         float uScale = 1f / _data.textureArray.Width;
         float vScale = 1f / _data.textureArray.Height;
@@ -110,64 +118,85 @@ public class Renderer2D(IGraphicsContext context) : Renderer(context)
         
         Vertex[] vertices = 
         [
-            new (position, colorVector, new Vector3(Vector2.UnitY * uvScale, 0f)),
-            new (new Vector3(position.X + size.X, position.Y, 0), colorVector, new Vector3(Vector2.One  * uvScale, 0f)),
-            new (new Vector3(position.X + size.X, position.Y + size.Y, 0), colorVector, new Vector3(Vector2.UnitX  * uvScale, 0f)),
-            new (new Vector3(position.X, position.Y + size.Y, 0), colorVector, new Vector3(Vector2.Zero * uvScale, 0f))
+            new (Vector3.Transform(_data.quadPosition[0], transform), colorVector, new Vector3(Vector2.UnitY * uvScale, 0f)),
+            new (Vector3.Transform(_data.quadPosition[1], transform), colorVector, new Vector3(Vector2.One  * uvScale, 0f)),
+            new (Vector3.Transform(_data.quadPosition[2], transform), colorVector, new Vector3(Vector2.UnitX  * uvScale, 0f)),
+            new (Vector3.Transform(_data.quadPosition[3], transform), colorVector, new Vector3(Vector2.Zero * uvScale, 0f))
         ];
 
-        Unsafe.CopyBlock((void*)_data.vertexBuffer, vertices.GetPointerUnsafe(), (uint)(Unsafe.SizeOf<Vertex>() * 4));
-
-        _data.vertexBuffer += Unsafe.SizeOf<Vertex>() * 4;
-        _data.vertexCount += 6;
+        CopyToBuffer(vertices, 6);
     }
     
-    public unsafe void DrawQuad(Vector3 position, Vector2 size, ITexture2D texture, float tilingFactor, Color color)
+    public void DrawQuad(Vector3 position, Vector2 size, ITexture2D texture, float tilingFactor, Color color)
     {
+        Matrix4x4 transform = Matrix4x4.CreateScale(new Vector3(size, 1f)) * Matrix4x4.CreateTranslation(position);
+        
         var colorVector = color == default ? Vector3.One : new Vector3(color.R / 255f, color.G / 255f, color.B / 255f);
         float uScale = texture.Width / (float)_data.textureArray.Width;
         float vScale = texture.Height / (float)_data.textureArray.Height;
         Vector2 uvScale = new Vector2(uScale, vScale);
         
+        float texIndex = _data.textureArray.AddTexture(texture);
+        
         Vertex[] vertices = 
         [
-            new (position, colorVector, new Vector3(Vector2.UnitY * uvScale, 1f)),
-            new (new Vector3(position.X + size.X, position.Y, 0), colorVector, new Vector3(Vector2.One * uvScale, 1f)),
-            new (new Vector3(position.X + size.X, position.Y + size.Y, 0), colorVector, new Vector3(Vector2.UnitX * uvScale, 1f)),
-            new (new Vector3(position.X, position.Y + size.Y, 0), colorVector, new Vector3(Vector2.Zero * uvScale, 1f))
+            new (Vector3.Transform(_data.quadPosition[0], transform), colorVector, new Vector3(Vector2.UnitY * uvScale, texIndex)),
+            new (Vector3.Transform(_data.quadPosition[1], transform), colorVector, new Vector3(Vector2.One * uvScale, texIndex)),
+            new (Vector3.Transform(_data.quadPosition[2], transform), colorVector, new Vector3(Vector2.UnitX * uvScale, texIndex)),
+            new (Vector3.Transform(_data.quadPosition[3], transform), colorVector, new Vector3(Vector2.Zero * uvScale, texIndex))
         ];
         
-        Unsafe.CopyBlock((void*)_data.vertexBuffer, vertices.GetPointerUnsafe(), (uint)(Unsafe.SizeOf<Vertex>() * 4));
-        
-        _data.vertexBuffer += Unsafe.SizeOf<Vertex>() * 4;
-        _data.vertexCount += 6;
-        
-        _data.textureArray.AddTexture(texture);
+        CopyToBuffer(vertices, 6);
     }
 
     public void DrawRotatedQuad(Vector3 position, Vector2 size, float rotation, Color color)
     {
         Matrix4x4 transform = Matrix4x4.CreateScale(new Vector3(size, 1f)) * Matrix4x4.CreateTranslation(position) * Matrix4x4.CreateRotationZ(rotation);
         
-        _data.textureShader.UploadConstantFloat3("Render2DData", new Vector3(color.R / 255f, color.G / 255f, color.B / 255f), ShaderType.Pixel);
-        _data.textureShader.UploadConstantMat44("Transform", transform);
+        var colorVector = new Vector3(color.R / 255f, color.G / 255f, color.B / 255f);
+        float uScale = 1f / _data.textureArray.Width;
+        float vScale = 1f / _data.textureArray.Height;
+        Vector2 uvScale = new Vector2(uScale, vScale);
         
-        _data.whiteTexture.Bind();
-        _data.quadMesh.Bind();
-        RCommand.DrawIndexed(_data.quadMesh.VertexCount);
+        Vertex[] vertices = 
+        [
+            new (Vector3.Transform(_data.quadPosition[0], transform), colorVector, new Vector3(Vector2.UnitY * uvScale, 0f)),
+            new (Vector3.Transform(_data.quadPosition[1], transform), colorVector, new Vector3(Vector2.One  * uvScale, 0f)),
+            new (Vector3.Transform(_data.quadPosition[2], transform), colorVector, new Vector3(Vector2.UnitX  * uvScale, 0f)),
+            new (Vector3.Transform(_data.quadPosition[3], transform), colorVector, new Vector3(Vector2.Zero * uvScale, 0f))
+        ];
+        CopyToBuffer(vertices, 6);
     }
 
     public void DrawRotatedQuad(Vector3 position, Vector2 size, float rotation, ITexture2D texture, float tilingFactor, Color color)
     {
         Matrix4x4 transform = Matrix4x4.CreateScale(new Vector3(size, 1f)) * Matrix4x4.CreateTranslation(position) * Matrix4x4.CreateRotationZ(rotation);
+        
         var colorVector = color == default ? Vector3.One : new Vector3(color.R / 255f, color.G / 255f, color.B / 255f);
+        float uScale = texture.Width / (float)_data.textureArray.Width;
+        float vScale = texture.Height / (float)_data.textureArray.Height;
+        Vector2 uvScale = new Vector2(uScale, vScale);
         
-        _data.textureShader.UploadConstantMat44("Transform", transform);
-        _data.textureShader.UploadConstantFloat("TextureInfo", tilingFactor, ShaderType.Pixel);
-        _data.textureShader.UploadConstantFloat3("Render2DData", colorVector, ShaderType.Pixel);
+        float texIndex = _data.textureArray.AddTexture(texture);
         
-        texture.Bind();
-        _data.quadMesh.Bind();
-        RCommand.DrawIndexed(_data.quadMesh.VertexCount);
+        Vertex[] vertices = 
+        [
+            new (Vector3.Transform(_data.quadPosition[0], transform), colorVector, new Vector3(Vector2.UnitY * uvScale, texIndex)),
+            new (Vector3.Transform(_data.quadPosition[1], transform), colorVector, new Vector3(Vector2.One  * uvScale, texIndex)),
+            new (Vector3.Transform(_data.quadPosition[2], transform), colorVector, new Vector3(Vector2.UnitX  * uvScale, texIndex)),
+            new (Vector3.Transform(_data.quadPosition[3], transform), colorVector, new Vector3(Vector2.Zero * uvScale, texIndex))
+        ];
+        
+        CopyToBuffer(vertices, 6);
+    }
+
+    private unsafe void CopyToBuffer<T>(Span<T> vertices, uint addIndicesCount) where T : unmanaged
+    {
+        var byteCount = (uint)(Unsafe.SizeOf<Vertex>() * vertices.Length);
+        
+        Unsafe.CopyBlock((void*)_data.vertexBuffer, vertices.GetPointerUnsafe(), byteCount);
+
+        _data.vertexBuffer += (int)byteCount;
+        _data.vertexCount += addIndicesCount;
     }
 }
