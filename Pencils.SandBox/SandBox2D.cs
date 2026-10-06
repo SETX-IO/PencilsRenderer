@@ -30,8 +30,6 @@ public class SandBox2D(IGraphicsContext graphicsContext) : ISandBox
         {
             Zoom = 2f,
         };
-
-        Log.Logger.Information("Initialized DxContext");
         
         _checkerBoardTexture = DxTexture2D.Create("image/container.jpg");
 

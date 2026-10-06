@@ -10,6 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Extensions\spine\spine-csharp.csproj" />
       <ProjectReference Include="..\Pencils\Pencils.csproj" />
     </ItemGroup>
 

@@ -2,6 +2,5 @@
 
 public interface IIndexBuffer : IBuffer
 {
-    uint Count { get; }
     static abstract IIndexBuffer Create(uint size);
 }

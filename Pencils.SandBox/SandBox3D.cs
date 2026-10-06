@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 using Pencils.Platform.DirectX11;
 using Pencils.RendererApi;
 using Serilog;
@@ -44,9 +45,6 @@ public class SandBox3D : ISandBox
         {
             Position = new Vector3(0, 0, -2)
         };
-        _renderer.SetViewport(width, height, 1f);
-
-        Log.Logger.Information("Initialized DxContext");
         
         _mesh = DxMesh.Create();
         var vertexBuffer = DxVertexBuffer.Create(a);
@@ -59,19 +57,26 @@ public class SandBox3D : ISandBox
         _shaderLibrary.Load("Shader/Texture.hlsl");
 
         _texture = DxTexture2D.Create("image/container.jpg");
-        
-        _renderer.RCommand.DefaultPrimitiveTopology();
     }
 
     public void Renderer(float deltaTime)
     {
         var textureShader = _shaderLibrary["Texture"];
         
+        _renderer.RCommand.DefaultPrimitiveTopology();
+        
+        _renderer.SetViewport(800, 600, 1f);
+        _renderer.SetScissor(0, 0, 800, 600);
+        _renderer.RCommand.SetDepthStStencilState();
+        _renderer.RCommand.SetBlendState();
+        _renderer.RCommand.SetFillAndCull();
+        
         _renderer.BeginScene(_cameraData.CameraMatrix);
-
-        _texture.Bind(0);
-        _renderer.Submit(textureShader, _mesh, Matrix4x4.CreateRotationZ(_rotation));
-
+        
+        _texture.Bind();
+        _renderer.Submit(textureShader, _mesh, Matrix4x4.CreateRotationY(MathF.Min(MathF.Cos(_rotation), 15f)));
+        _texture.Unbind();
+        
         _renderer.EndScene();
     }
     

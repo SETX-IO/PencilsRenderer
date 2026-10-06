@@ -6,6 +6,13 @@ public enum WriteMask
     All
 }
 
+public enum ComparisonFunc
+{
+    Never = 1,
+    Less,
+    Always = 8
+}
+
 public record struct DepthStencilInfo
 {
     public bool depthEnable = true;

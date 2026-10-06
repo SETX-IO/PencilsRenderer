@@ -21,9 +21,7 @@ public class DxMesh : IMesh
     public void AddVertexBuffer(IVertexBuffer buffer)
     {
         foreach (var attribType in buffer.AttribType)
-        {
             VertexAttribs.Add(new VertexAttrib(attribType, (uint)VertexBuffers.Count));
-        }
 
         _vertexCount += buffer.Count;
         VertexBuffers.Add(buffer);
@@ -45,17 +43,23 @@ public class DxMesh : IMesh
     public void Bind()
     {
         IndexBuffer?.Bind();
-        
-        foreach (var buffer in VertexBuffers)
-            buffer.Bind();
+
+        for (int i = 0; i < VertexBuffers.Count; i++)
+        {
+            IVertexBuffer vBuffer = VertexBuffers[i];
+            vBuffer.Bind((uint)i);
+        }
     }
 
     public void Unbind()
     {
         IndexBuffer?.Unbind();
         
-        foreach (var buffer in VertexBuffers)
-            buffer.Unbind();
+        for (int i = 0; i < VertexBuffers.Count; i++)
+        {
+            IVertexBuffer vBuffer = VertexBuffers[i];
+            vBuffer.Unbind((uint)i);
+        }
     }
 
     public static IMesh Create()

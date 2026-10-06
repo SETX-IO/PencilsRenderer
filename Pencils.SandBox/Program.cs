@@ -51,7 +51,7 @@ public class App
         rendererContext.Init();
         rendererContext.SetBufferColor(Color.LightSlateGray);
         
-        // _sandBoxs.Add(new SandBox3D(rendererContext));
+        _sandBoxs.Add(new SandBox3D(rendererContext));
         _sandBoxs.Add(new SandBox2D(rendererContext));
         
         foreach (var sandBox in _sandBoxs)
@@ -61,6 +61,7 @@ public class App
     private void OnRenderer(double obj)
     {
         rendererContext.SwapBuffers();
+        
         foreach (var sandBox in _sandBoxs)
             sandBox.Renderer((float)obj);
     }
