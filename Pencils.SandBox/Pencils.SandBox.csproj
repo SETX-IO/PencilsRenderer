@@ -9,7 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Pencils.Extention\Pencils.Extention.csproj" />
       <ProjectReference Include="..\Pencils\Pencils.csproj" />
     </ItemGroup>
 
