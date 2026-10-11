@@ -4,7 +4,7 @@ using Pencils.Platform.DirectX11;
 using Pencils.RendererApi;
 using Serilog;
 
-namespace Pencils.SandBox;
+namespace Pencils.SandBox.Sample;
 
 public class SandBox3D : ISandBox
 {
@@ -64,7 +64,6 @@ public class SandBox3D : ISandBox
         var textureShader = _shaderLibrary["Texture"];
         
         _renderer.RCommand.DefaultPrimitiveTopology();
-        
         _renderer.SetViewport(800, 600, 1f);
         _renderer.SetScissor(0, 0, 800, 600);
         _renderer.RCommand.SetDepthStStencilState();

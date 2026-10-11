@@ -1,4 +1,4 @@
-﻿namespace Pencils.SandBox;
+﻿namespace Pencils.SandBox.Sample;
 
 public interface ISandBox
 {

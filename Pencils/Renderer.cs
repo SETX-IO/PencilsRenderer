@@ -35,7 +35,7 @@ public class Renderer(IGraphicsContext gContext)
         _sceneData.ViewProjMat = camera;
     }
     
-    public void Submit(IShader? shader, IMesh mesh, Matrix4x4 transform)
+    public void Submit(IShader? shader, IMesh mesh, Matrix4x4 transform = default)
     {
         _firstMesh?.Unbind();
 
@@ -44,6 +44,8 @@ public class Renderer(IGraphicsContext gContext)
             Log.Logger.Error("shader is null");
             return;
         }
+        
+        transform = transform == default ? Matrix4x4.Identity : transform;
         
         shader.Use();
         shader.UploadConstantMat44("MvpMat", transform * _sceneData.ViewProjMat);
@@ -63,6 +65,14 @@ public class Renderer(IGraphicsContext gContext)
     public virtual void EndScene()
     {
         
+    }
+
+    public void SetDefaultRenderState()
+    {
+        _rCommand.DefaultPrimitiveTopology();
+        _rCommand.SetBlendState();
+        _rCommand.SetDepthStStencilState();
+        _rCommand.SetFillAndCull();
     }
 
     public void SetScissor(int left, int top, int right, int bottom)

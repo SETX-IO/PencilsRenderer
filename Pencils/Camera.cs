@@ -16,14 +16,15 @@ public class Camera
     
     private CameraData _data;
 
-    private Matrix4x4 _view => _data.cameraType switch
+    public Matrix4x4 View => _data.cameraType switch
     {
+        // CameraType.Perspective => Matrix4x4.CreateLookAtLeftHanded(_data.position, Vector3.Zero, _up),
         CameraType.Perspective => Matrix4x4.CreateLookAtLeftHanded(_data.position, _data.position + _front, _up),
         CameraType.Orthographic => Matrix4x4.Identity,
         _ => throw new ArgumentOutOfRangeException()
     };
     
-    private Matrix4x4 _projection => _data.cameraType switch
+    public Matrix4x4 Projection => _data.cameraType switch
     {
         CameraType.Perspective => Matrix4x4.CreatePerspectiveFieldOfViewLeftHanded(float.DegreesToRadians(_data.fov),
             _data.aspect, 1, 100),
@@ -54,7 +55,7 @@ public class Camera
         set => _data.zoom = value;
     }
     
-    public Matrix4x4 CameraMatrix => _view * _projection;
+    public Matrix4x4 CameraMatrix => View * Projection;
     
     public Camera(int width, int height, CameraType type = CameraType.Perspective)
     {

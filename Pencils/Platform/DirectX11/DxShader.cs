@@ -15,19 +15,19 @@ namespace Pencils.Platform.DirectX11;
 public class DxShader : IShader
 {
     // baseShader
-    private readonly ID3D11VertexShader? _vertexShader;
-    private readonly ID3D11PixelShader? _pixelShader;
+    private ID3D11VertexShader? _vertexShader;
+    private ID3D11PixelShader? _pixelShader;
     
-    private readonly ID3D11HullShader? _hullShader;
-    private readonly ID3D11DomainShader? _domainShader;
-    private readonly ID3D11GeometryShader? _geometryShader;
-    private readonly ID3D11ComputeShader? _computeShader;
+    private ID3D11HullShader? _hullShader;
+    private ID3D11DomainShader? _domainShader;
+    private ID3D11GeometryShader? _geometryShader;
+    private ID3D11ComputeShader? _computeShader;
 
     private readonly bool _isBaseShader;
-    private readonly ID3D11InputLayout? _inputLayout;
+    private ID3D11InputLayout? _inputLayout;
     
     private readonly Dictionary<ShaderType, ID3D11ShaderReflection> _shaderReflection = new();
-    private readonly Dictionary<ShaderType, Dictionary<string, ShaderConstant>> _constantBuffers;
+    private Dictionary<ShaderType, Dictionary<string, ShaderConstant>> _constantBuffers;
     
     public string Name { get; }
 
@@ -35,54 +35,23 @@ public class DxShader : IShader
     {
         _isBaseShader = true;
         Name = Path.GetFileNameWithoutExtension(shaderPath);
-        _constantBuffers = new Dictionary<ShaderType, Dictionary<string, ShaderConstant>>();
 
-        var shaderBytes = ShaderTools.CompileForFile(ShaderType.Vertex, shaderPath);
-        var vsShaderBytes = shaderBytes;
-        var factory = DxContext.ResourcesFactory;
-        
-        _shaderReflection.Add(ShaderType.Vertex, Compiler.Reflect<ID3D11ShaderReflection>(shaderBytes.Span));
-        _vertexShader = new ID3D11VertexShader((nint)factory.CreateShader(ShaderType.Vertex, shaderBytes.Span));
-        
-        shaderBytes = ShaderTools.CompileForFile(ShaderType.Pixel, shaderPath);
-        _pixelShader = new ID3D11PixelShader((nint)factory.CreateShader(ShaderType.Pixel, shaderBytes.Span));
-        _shaderReflection.Add(ShaderType.Pixel, Compiler.Reflect<ID3D11ShaderReflection>(shaderBytes.Span));
-        
-        _inputLayout = vertexAttributes == null
-            ? ShaderTools.ConfigVertexAttrib(vsShaderBytes, _shaderReflection[ShaderType.Vertex])
-            : ShaderTools.ConfigVertexAttrib(vsShaderBytes, vertexAttributes);
-        
-         InitConstantBuffer();
+        InitRasterizerShader(shaderPath, vertexAttributes);
+        InitConstantBuffer();
     }
     
     private DxShader(string shaderCode, bool isBaseShader, VertexAttrib[]? vertexAttributes)
     {
         var factory = DxContext.ResourcesFactory;
         _isBaseShader = isBaseShader;
-        _constantBuffers = new Dictionary<ShaderType, Dictionary<string, ShaderConstant>>(); 
 
         switch (isBaseShader)
         {
             case true when !shaderCode.Contains("vert") && !shaderCode.Contains("frag"):
                 throw new ArgumentException(shaderCode);
             case true:
-            {
-                var il = ShaderTools.Compile(ShaderType.Vertex, shaderCode);
-                ReadOnlyMemory<byte> vsShaderBytes = il;
-                
-                _vertexShader = new ID3D11VertexShader((nint)factory.CreateShader(ShaderType.Vertex, il.Span));
-                _shaderReflection[ShaderType.Vertex] = Compiler.Reflect<ID3D11ShaderReflection>(il.Span);
-                
-                il = ShaderTools.Compile(ShaderType.Pixel, shaderCode);
-                _pixelShader = new ID3D11PixelShader((nint)factory.CreateShader(ShaderType.Pixel, il.Span));
-                _shaderReflection.Add(ShaderType.Pixel, Compiler.Reflect<ID3D11ShaderReflection>(il.Span));
-                
-                _inputLayout = vertexAttributes == null
-                    ? ShaderTools.ConfigVertexAttrib(vsShaderBytes, _shaderReflection[ShaderType.Vertex])
-                    : ShaderTools.ConfigVertexAttrib(vsShaderBytes, vertexAttributes);
-                
+                InitRasterizerShader(shaderCode, vertexAttributes);
                 break;
-            }
         }
 
         if (shaderCode.Contains("hull"))
@@ -159,6 +128,7 @@ public class DxShader : IShader
     private unsafe void UploadContextData<T>(string constantName, ref T data, ShaderType visibleShader) where T : struct
     {
         var ctx = DxContext.Context;
+        
         if (!_constantBuffers.TryGetValue(visibleShader, out var buffer))
         {
             Log.Logger.Error($"Shader {constantName} does not exist");
@@ -196,9 +166,29 @@ public class DxShader : IShader
         Unsafe.Copy((void*)dataPtr, ref data);
         ctx.Unmap(constantBuffer.constantBuffer);
     }
-
+    
+    private void InitRasterizerShader(string shaderPath, VertexAttrib[]? vertexAttributes)
+    {
+        var shaderBytes = ShaderTools.CompileForFile(ShaderType.Vertex, shaderPath);
+        var vsShaderBytes = shaderBytes;
+        var factory = DxContext.ResourcesFactory;
+        
+        _shaderReflection.Add(ShaderType.Vertex, Compiler.Reflect<ID3D11ShaderReflection>(shaderBytes.Span));
+        _vertexShader = new ID3D11VertexShader((nint)factory.CreateShader(ShaderType.Vertex, shaderBytes.Span));
+        
+        shaderBytes = ShaderTools.CompileForFile(ShaderType.Pixel, shaderPath);
+        _pixelShader = new ID3D11PixelShader((nint)factory.CreateShader(ShaderType.Pixel, shaderBytes.Span));
+        _shaderReflection.Add(ShaderType.Pixel, Compiler.Reflect<ID3D11ShaderReflection>(shaderBytes.Span));
+        
+        _inputLayout = vertexAttributes == null
+            ? ShaderTools.ConfigVertexAttrib(vsShaderBytes, _shaderReflection[ShaderType.Vertex])
+            : ShaderTools.ConfigVertexAttrib(vsShaderBytes, vertexAttributes);
+    }
+    
     private void InitConstantBuffer()
     {
+        _constantBuffers = new Dictionary<ShaderType, Dictionary<string, ShaderConstant>>(); 
+        
         foreach (var reflection in _shaderReflection)
         {
             Dictionary<string, ShaderConstant> constants = new();

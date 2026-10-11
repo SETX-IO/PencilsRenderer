@@ -20,10 +20,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="Shader\*.*">
+        <None Update="Shader\**\*.*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="image\*.*">
+        <None Update="image\**\*.*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>

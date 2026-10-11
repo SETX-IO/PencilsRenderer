@@ -1,7 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using Hexa.NET.ImGui;
+using Pencils.Extension;
 using Pencils.Platform.DirectX11;
 using Pencils.RendererApi;
+using Pencils.SandBox.Sample;
 using Serilog;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -22,6 +25,7 @@ public class App
     private readonly IWindow _window;
     private IGraphicsContext rendererContext;
     private List<ISandBox> _sandBoxs;
+    private ImGuiRenderer _imGui;
     
     public App(string[] args, string title, int width, int height)
     {
@@ -43,6 +47,9 @@ public class App
         _window.Render += OnRenderer;
         _window.Update += OnUpdate;
         _window.Resize += OnResize;
+        
+        // SpineRenderer spineRenderer =  new SpineRenderer();
+        // spineRenderer.Render();
     }
 
     private void OnInit()
@@ -51,8 +58,17 @@ public class App
         rendererContext.Init();
         rendererContext.SetBufferColor(Color.LightSlateGray);
         
+        
+        Renderer renderer = new Renderer(rendererContext);
+        _imGui = new  ImGuiRenderer(renderer);
+        _imGui.ImGuiGenGuiEvent += () =>
+        {
+            ImGui.ShowDemoWindow();
+        };
+            
         _sandBoxs.Add(new SandBox3D(rendererContext));
         _sandBoxs.Add(new SandBox2D(rendererContext));
+        _sandBoxs.Add(new BlackHole(renderer));
         
         foreach (var sandBox in _sandBoxs)
             sandBox.Init(_window.Size.X, _window.Size.Y);
@@ -64,6 +80,8 @@ public class App
         
         foreach (var sandBox in _sandBoxs)
             sandBox.Renderer((float)obj);
+        
+        _imGui.Render((float)obj);
     }
 
     private void OnResize(Vector2D<int> obj)

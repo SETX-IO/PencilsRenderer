@@ -116,14 +116,7 @@ public class Renderer2D(IGraphicsContext context) : Renderer(context)
         float vScale = 1f / _data.textureArray.Height;
         Vector2 uvScale = new Vector2(uScale, vScale);
         
-        Vertex[] vertices = 
-        [
-            new (Vector3.Transform(_data.quadPosition[0], transform), colorVector, new Vector3(Vector2.UnitY * uvScale, 0f)),
-            new (Vector3.Transform(_data.quadPosition[1], transform), colorVector, new Vector3(Vector2.One  * uvScale, 0f)),
-            new (Vector3.Transform(_data.quadPosition[2], transform), colorVector, new Vector3(Vector2.UnitX  * uvScale, 0f)),
-            new (Vector3.Transform(_data.quadPosition[3], transform), colorVector, new Vector3(Vector2.Zero * uvScale, 0f))
-        ];
-
+        Vertex[] vertices = CreateQuadVertices(transform, colorVector, uvScale, 0f);
         CopyToBuffer(vertices, 6);
     }
     
@@ -138,14 +131,7 @@ public class Renderer2D(IGraphicsContext context) : Renderer(context)
         
         float texIndex = _data.textureArray.AddTexture(texture);
         
-        Vertex[] vertices = 
-        [
-            new (Vector3.Transform(_data.quadPosition[0], transform), colorVector, new Vector3(Vector2.UnitY * uvScale, texIndex)),
-            new (Vector3.Transform(_data.quadPosition[1], transform), colorVector, new Vector3(Vector2.One * uvScale, texIndex)),
-            new (Vector3.Transform(_data.quadPosition[2], transform), colorVector, new Vector3(Vector2.UnitX * uvScale, texIndex)),
-            new (Vector3.Transform(_data.quadPosition[3], transform), colorVector, new Vector3(Vector2.Zero * uvScale, texIndex))
-        ];
-        
+        Vertex[] vertices = CreateQuadVertices(transform, colorVector, uvScale, texIndex);
         CopyToBuffer(vertices, 6);
     }
 
@@ -158,13 +144,7 @@ public class Renderer2D(IGraphicsContext context) : Renderer(context)
         float vScale = 1f / _data.textureArray.Height;
         Vector2 uvScale = new Vector2(uScale, vScale);
         
-        Vertex[] vertices = 
-        [
-            new (Vector3.Transform(_data.quadPosition[0], transform), colorVector, new Vector3(Vector2.UnitY * uvScale, 0f)),
-            new (Vector3.Transform(_data.quadPosition[1], transform), colorVector, new Vector3(Vector2.One  * uvScale, 0f)),
-            new (Vector3.Transform(_data.quadPosition[2], transform), colorVector, new Vector3(Vector2.UnitX  * uvScale, 0f)),
-            new (Vector3.Transform(_data.quadPosition[3], transform), colorVector, new Vector3(Vector2.Zero * uvScale, 0f))
-        ];
+        Vertex[] vertices = CreateQuadVertices(transform, colorVector, uvScale, 0f);
         CopyToBuffer(vertices, 6);
     }
 
@@ -179,17 +159,23 @@ public class Renderer2D(IGraphicsContext context) : Renderer(context)
         
         float texIndex = _data.textureArray.AddTexture(texture);
         
-        Vertex[] vertices = 
-        [
-            new (Vector3.Transform(_data.quadPosition[0], transform), colorVector, new Vector3(Vector2.UnitY * uvScale, texIndex)),
-            new (Vector3.Transform(_data.quadPosition[1], transform), colorVector, new Vector3(Vector2.One  * uvScale, texIndex)),
-            new (Vector3.Transform(_data.quadPosition[2], transform), colorVector, new Vector3(Vector2.UnitX  * uvScale, texIndex)),
-            new (Vector3.Transform(_data.quadPosition[3], transform), colorVector, new Vector3(Vector2.Zero * uvScale, texIndex))
-        ];
-        
+        Vertex[] vertices = CreateQuadVertices(transform, colorVector, uvScale, texIndex);
         CopyToBuffer(vertices, 6);
     }
 
+    private Vertex[] CreateQuadVertices(Matrix4x4 transform, Vector3 color, Vector2 uvScale, float texIndex)
+    {
+        Vertex[] vertices = 
+        [
+            new (Vector3.Transform(_data.quadPosition[0], transform), color, new Vector3(Vector2.UnitY * uvScale, texIndex)),
+            new (Vector3.Transform(_data.quadPosition[1], transform), color, new Vector3(Vector2.One  * uvScale, texIndex)),
+            new (Vector3.Transform(_data.quadPosition[2], transform), color, new Vector3(Vector2.UnitX  * uvScale, texIndex)),
+            new (Vector3.Transform(_data.quadPosition[3], transform), color, new Vector3(Vector2.Zero * uvScale, texIndex))
+        ];
+        
+        return vertices;
+    }
+    
     private unsafe void CopyToBuffer<T>(Span<T> vertices, uint addIndicesCount) where T : unmanaged
     {
         var byteCount = (uint)(Unsafe.SizeOf<Vertex>() * vertices.Length);

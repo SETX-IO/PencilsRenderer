@@ -78,7 +78,7 @@ public unsafe class DxResourcesFactory : IResourcesFactory
         return shader.NativePointer.ToInt64();
     }
 
-    public long CreateTexture2D(string path, out uint width, out uint height, Texture2DFormat format)
+    public long CreateTexture2D(string path, out uint width, out uint height, TextureFormat format)
     {
         var textureData = Texture2DLoad.Load(path, out width, out height, out Format textureFormat);
         
@@ -93,11 +93,27 @@ public unsafe class DxResourcesFactory : IResourcesFactory
         return srv.NativePointer.ToInt64();
     }
 
-    public long CreateTexture2D(uint width, uint height, Texture2DFormat format, uint arraySize)
+    public long CreateTexture2D(uint width, uint height, TextureFormat format, uint arraySize)
     {
         Texture2DDescription textureDesc = new(Format.R8G8B8A8_UNorm, width, height, arraySize, 1);
         ShaderResourceViewDimension dimension = arraySize >= 1 ? ShaderResourceViewDimension.Texture2DArray : ShaderResourceViewDimension.Texture2D;
         ShaderResourceViewDescription srvDesc = new(dimension, textureDesc.Format);
+        
+        var texture2D = _device.CreateTexture2D(textureDesc);
+        var srv = _device.CreateShaderResourceView(texture2D, srvDesc);
+
+        return srv.NativePointer.ToInt64();
+    }
+
+    public long CreateTextureCube(string cubePtah, out uint width, out uint height)
+    {
+        throw new NotImplementedException();
+    }
+
+    public long CreateTextureCube(uint width, uint height, TextureFormat format)
+    {
+        Texture2DDescription textureDesc = new(Format.R8G8B8A8_UNorm, width, height, 6, 1, miscFlags: ResourceOptionFlags.TextureCube);
+        ShaderResourceViewDescription srvDesc = new(ShaderResourceViewDimension.TextureCube, textureDesc.Format);
         
         var texture2D = _device.CreateTexture2D(textureDesc);
         var srv = _device.CreateShaderResourceView(texture2D, srvDesc);
@@ -124,7 +140,7 @@ public unsafe class DxResourcesFactory : IResourcesFactory
             DepthEnable = info.depthEnable,
             StencilEnable = info.stencilEnable,
             DepthFunc = (ComparisonFunction)info.depthFunc,
-            DepthWriteMask = (DepthWriteMask)info.DepthWriteMask,
+            DepthWriteMask = (DepthWriteMask)info.depthWriteMask,
         };
         
         var depthStencilState = _device.CreateDepthStencilState(depthStencilInfo);

@@ -142,9 +142,9 @@ public class ImGuiRenderer
             dstAlphaFactor = BlendFactor.InverseDestinationAlpha
         };
 
-        DepthStencilInfo depthStencilInfo = new DepthStencilInfo()
+        DepthStencilInfo depthStencilInfo = new DepthStencilInfo
         {
-            DepthWriteMask = WriteMask.Off
+            depthWriteMask = WriteMask.Off
         };
         
         renderer.RCommand.SetFillAndCull(Fill.Solid, Cull.Off);

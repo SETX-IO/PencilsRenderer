@@ -12,8 +12,8 @@ public interface ITexture
 
     void Bind(uint slot = 0);
     void Unbind(uint slot = 0);
-    void SetData(ReadOnlySpan<byte> data);
-    void SetData(nint data, uint pitch);
-    void SetData(nint data, uint pitch, Viewport viewport);
-    void SetData(ReadOnlySpan<byte> data, Viewport viewport);
+    void SetData(ReadOnlySpan<byte> data, uint subresourceIndex = 0);
+    void SetData(nint data, uint pitch, uint subresourceIndex = 0);
+    void SetData(nint data, uint pitch, Viewport viewport, uint subresourceIndex = 0);
+    void SetData(ReadOnlySpan<byte> data, Viewport viewport, uint subresourceIndex = 0);
 }

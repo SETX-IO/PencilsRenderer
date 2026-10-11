@@ -6,16 +6,9 @@ using Vortice.Mathematics;
 
 namespace Pencils.Platform.DirectX11;
 
-public class DxTexture2D : ITexture2D
+public class DxTexture2D : DxBaseTexture, ITexture2D
 {
     private string? _path;
-    protected readonly ID3D11Resource resource;
-    protected readonly ID3D11ShaderResourceView textureSrv;
-    
-    public uint Width { get; }
-    public uint Height { get; }
-    public long Id { get; }
-
 
     protected DxTexture2D(string path)
     {
@@ -39,30 +32,6 @@ public class DxTexture2D : ITexture2D
         
         Width = width;
         Height = height;
-    }
-    
-    public void Bind(uint slot)
-    {
-        /*
-         * TODO:
-         * 添加 Sampler 绑定
-         * 使纹理自动生成多级纹理
-        */
-        
-        // DxContext.Context.GenerateMips(_textureSrv);
-        DxContext.Context.PSSetShaderResource(slot, textureSrv);
-    }
-    
-    public void Unbind(uint slot) => DxContext.Context.PSSetShaderResource(slot, null!);
-    public void SetData(ReadOnlySpan<byte> data) => SetData(data, new Viewport(0, 0, Width, Height));
-    public unsafe void SetData(ReadOnlySpan<byte> data, Viewport viewport) => SetData((nint)data.GetPointerUnsafe(), (uint)data.Length / Height, viewport);
-    public void SetData(IntPtr data, uint pitch) => SetData(data, pitch, new Viewport(0, 0, Width, Height));
-
-    public void SetData(IntPtr data, uint pitch, Viewport viewport)
-    {
-        Box subresource = new Box((int)viewport.X, (int)viewport.Y, 0, (int)viewport.Width, (int)viewport.Height, 1);
-        
-        DxContext.Context.UpdateSubresource(resource, 0, subresource, data, pitch, 0);
     }
 
     public static ITexture2D Create(string path)
