@@ -27,9 +27,14 @@ public struct Renderer2DStorage
     public uint vertexCount;
 }
 
-public class Renderer2D(IGraphicsContext context) : Renderer(context)
+public class Renderer2D : Renderer
 {
     private Renderer2DStorage _data;
+
+    public Renderer2D(IGraphicsContext context) : base(context)
+    {
+        Init();
+    }
     
     public void Init()
     {
@@ -74,10 +79,12 @@ public class Renderer2D(IGraphicsContext context) : Renderer(context)
         _data.textureArray.AddTexture(_data.whiteTexture);
     }
 
-    public override void BeginScene(Matrix4x4 cameraMat)
+    public override void BeginScene(MvpData data, IFrameBuffer? renderTarget = null)
     {
+        base.BeginScene(data, renderTarget);
+        
         _data.textureShader.Use();
-        _data.textureShader.UploadConstantMat44("MvpMat", cameraMat);
+        _data.textureShader.UploadConstantStruct("MvpMat", sceneData.mvp);
 
         _data.vertexBuffer = _data.quadVertexBuffer.Map();
         _data.vertexCount = 0;

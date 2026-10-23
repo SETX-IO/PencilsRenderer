@@ -68,8 +68,12 @@ public class DxContext : IGraphicsContext
     }
 
     public void SetBufferColor(Color color) => _clearColor = new Vortice.Mathematics.Color(color.R, color.G, color.B, color.A);
-    
-    public void ClearBuffer() => Context.ClearRenderTargetView(_rtv, _clearColor);
+
+    public void ClearBuffer()
+    {
+        Context.ClearRenderTargetView(_rtv, _clearColor);
+        Context.ClearDepthStencilView(_dsv, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
+    }
     
 
     public void ReSizeBuffer(uint width, uint height)
@@ -88,10 +92,7 @@ public class DxContext : IGraphicsContext
     public void SwapBuffers()
     {
         swapChain.Present(0, PresentFlags.None);
-        
         Context.OMSetRenderTargets(_rtv, _dsv);
-        Context.ClearRenderTargetView(_rtv, _clearColor);
-        Context.ClearDepthStencilView(_dsv, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
     }
 
     private void CreateOmView()

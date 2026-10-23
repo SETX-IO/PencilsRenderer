@@ -1,29 +1,24 @@
-﻿using System;
-using Pencils.Platform.Vulkan.Utility;
+﻿using Pencils.Platform.Vulkan.Utility;
+using Pencils.Vulkan;
 using Silk.NET.Windowing;
 using Vortice.Vulkan;
-using Vk = Vortice.Vulkan.Vulkan;
 
 namespace Pencils.Platform.Vulkan;
 
 public class VkContext
 {
-    private VkInstance _instance;
-    public unsafe VkContext(IWindow window)
+    private Instance _instance;
+    
+    public VkContext(IWindow window)
     {
+        VkVersion version = new  VkVersion(1, 3, 0);
         
-        // window.VkSurface
-        VkApplicationInfo applicationInfo = new VkApplicationInfo
+        VkApplicationInfo applicationInfo = new()
         {
             sType =  VkStructureType.ApplicationInfo,
-            apiVersion = VkInfoTools.GetLatestApiVersion(),
-        };
-        VkInstanceCreateInfo createInfo = new VkInstanceCreateInfo
-        {
-            pApplicationInfo = &applicationInfo,
+            apiVersion = version,
         };
         
-        if (Vk.vkCreateInstance(in createInfo, out _instance) != VkResult.Success)
-            throw new NullReferenceException("Failed to create instance");
+        _instance = new Instance(applicationInfo, window.VkSurface);
     }
 }

@@ -5,9 +5,9 @@ using Pencils.RendererApi;
 
 namespace Pencils.SandBox.Sample;
 
-public class SandBox2D(IGraphicsContext graphicsContext) : ISandBox
+public class SandBox2D(Renderer2D renderer2D) : ISandBox
 {
-    private Renderer2D _renderer = null!;
+    private Renderer2D _renderer = renderer2D;
     private Camera _cameraData = null!;
     private ITexture2D _checkerBoardTexture = null!;
 
@@ -18,9 +18,6 @@ public class SandBox2D(IGraphicsContext graphicsContext) : ISandBox
     {
         _width = width;
         _height = height;
-        
-        _renderer = new Renderer2D(graphicsContext);
-        _renderer.Init();
         
         _cameraData = new Camera(width, height, CameraType.Orthographic)
         {
@@ -40,7 +37,7 @@ public class SandBox2D(IGraphicsContext graphicsContext) : ISandBox
         _renderer.RCommand.SetBlendState();
         _renderer.RCommand.SetDepthStStencilState();
         
-        _renderer.BeginScene(_cameraData.CameraMatrix);
+        _renderer.BeginScene(_cameraData.SceneData);
         
         _renderer.DrawRotatedQuad(Vector2.UnitX * 0.3f, Vector2.One * 0.5f, 45f, Color.Brown);
         _renderer.DrawQuad(Vector2.UnitY * 0.55f, Vector2.One, Color.DodgerBlue);

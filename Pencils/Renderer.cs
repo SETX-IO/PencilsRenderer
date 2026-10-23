@@ -9,12 +9,13 @@ namespace Pencils;
 
 public record struct SceneData
 {
-    public Matrix4x4 ViewProjMat;
+    public MvpData mvp;
 }
 
 public class Renderer(IGraphicsContext gContext)
 {
     protected IGraphicsContext gContext = gContext;
+    protected SceneData sceneData;
     
     private IRenderCommand _rCommand = new DxRenderCommand();
     private IMesh? _firstMesh;
@@ -22,7 +23,6 @@ public class Renderer(IGraphicsContext gContext)
     public Viewport _viewport;
     public IRenderCommand RCommand => _rCommand;
     
-    private SceneData _sceneData;
     
     public void SetViewport(float width, float height, float depth)
     {
@@ -30,9 +30,14 @@ public class Renderer(IGraphicsContext gContext)
         _rCommand.SetViewport(_viewport);
     }
 
-    public virtual void BeginScene(Matrix4x4 camera)
+    public virtual void BeginScene(MvpData data, IFrameBuffer? renderTarget = null)
     {
-        _sceneData.ViewProjMat = camera;
+        sceneData.mvp = data;
+        
+        if (renderTarget == null) return;
+        
+        renderTarget.Use();
+        renderTarget.Clear();
     }
     
     public void Submit(IShader? shader, IMesh mesh, Matrix4x4 transform = default)
@@ -45,10 +50,10 @@ public class Renderer(IGraphicsContext gContext)
             return;
         }
         
-        transform = transform == default ? Matrix4x4.Identity : transform;
+        sceneData.mvp.modelMatrix = transform == default ? Matrix4x4.Identity : transform;
         
         shader.Use();
-        shader.UploadConstantMat44("MvpMat", transform * _sceneData.ViewProjMat);
+        shader.UploadConstantStruct("MvpMat", sceneData.mvp);
         
         mesh.Bind();
         _firstMesh = mesh;

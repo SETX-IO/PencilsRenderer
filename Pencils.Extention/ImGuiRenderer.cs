@@ -47,17 +47,6 @@ public class ImGuiRenderer
         
         mesh = DxMesh.Create();
         shader = DxShader.Create("Shader/ImGuiShader.hlsl", attribTypes);
-
-        BlendDescription blendInfo = new();
-        ref RenderTargetBlendDescription blendRt = ref blendInfo.RenderTarget[0];
-        blendRt.BlendEnable = true;
-        blendRt.SourceBlend = Blend.SourceAlpha;
-        blendRt.DestinationBlend = Blend.InverseSourceAlpha;
-        blendRt.BlendOperation = BlendOperation.Add;
-        blendRt.SourceBlendAlpha = Blend.One;
-        blendRt.DestinationBlendAlpha = Blend.InverseDestinationAlpha;
-        blendRt.BlendOperationAlpha = BlendOperation.Add;
-        blendRt.RenderTargetWriteMask = ColorWriteEnable.All;
     }
     
     public unsafe void Render(float deltaTime)
@@ -135,14 +124,14 @@ public class ImGuiRenderer
         vertexBuffer.CloseMap();
         indexBuffer.CloseMap();
 
-        BlendStateInfo blendInfo = new BlendStateInfo()
+        BlendStateInfo blendInfo = new()
         {
             srcFactor = BlendFactor.SourceAlpha,
             dstFactor = BlendFactor.InverseSourceAlpha,
             dstAlphaFactor = BlendFactor.InverseDestinationAlpha
         };
 
-        DepthStencilInfo depthStencilInfo = new DepthStencilInfo
+        DepthStencilInfo depthStencilInfo = new()
         {
             depthWriteMask = WriteMask.Off
         };
@@ -154,7 +143,7 @@ public class ImGuiRenderer
         mesh.Bind();
         
         shader.Use();
-        shader.UploadConstantMat44("vertexBuffer", mvp, false);
+        shader.UploadConstantMat44("MvpMat", mvp, false);
         renderer.SetViewport(drawData.DisplaySize.X * drawData.FramebufferScale.X,
             drawData.DisplaySize.Y * drawData.FramebufferScale.Y, 1.0f);
         

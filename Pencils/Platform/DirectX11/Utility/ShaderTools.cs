@@ -1,10 +1,12 @@
 ﻿using System;
+using System.IO;
 using Pencils.RendererApi;
 using Vortice.D3DCompiler;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.Direct3D11.Shader;
 using Vortice.DXGI;
+using SharpGen.Runtime;
 
 namespace Pencils.Platform.DirectX11.Utility;
 
@@ -14,28 +16,41 @@ public class ShaderConstant(uint slot, ID3D11Buffer buffer)
     public readonly ID3D11Buffer constantBuffer = buffer;
 }
 
-public class ShaderTools
+public class PencilsShaderInclude : CallbackBase, Include
 {
-    public static ReadOnlyMemory<byte> Compile(ShaderType type, string shaderCode)
-    {
-        (string entryPoitn, string profile) shaderProfile = type switch
-        {
-            ShaderType.Vertex => ("vert", "vs"),
-            ShaderType.Pixel => ("frag", "ps"),
-            ShaderType.Hull => ("hull", "hs"),
-            ShaderType.Domain => ("domain", "ds"),
-            ShaderType.Geometry => ("geometry", "gs"),
-            ShaderType.Compute => ("compute", "cs"),
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
-        };
-        
-        var il = Compiler.Compile(shaderCode, shaderProfile.entryPoitn, shaderProfile.entryPoitn, shaderProfile.profile + "_5_0");
+    public string IncludePath { get; }
 
-        return il;
+    public PencilsShaderInclude(string includeDir)
+    {
+        IncludePath = includeDir;
+    }
+    
+    public Stream Open(IncludeType type, string fileName, Stream? parentStream)
+    {
+        string fullPath = Path.Combine(IncludePath, fileName);
+
+        if (!File.Exists(fullPath))
+            // 返回 null 表示找不到文件，编译器会报错
+            return null!;
+        
+        return File.OpenRead(fullPath);
     }
 
-    public static ReadOnlyMemory<byte> CompileForFile(ShaderType type, string shaderPath)
+    public void Close(Stream stream) => stream.Dispose();
+}
+
+public class ShaderTools
+{
+    private static readonly Lazy<Include> LazyInclude = new(new PencilsShaderInclude("Shader"));
+    public static Include ShaderInclude => LazyInclude.Value;
+
+    public static ReadOnlyMemory<byte> Compile(ShaderType type, string shaderCode) => CompileShader(type, shaderCode, true);
+    public static ReadOnlyMemory<byte> CompileForFile(ShaderType type, string shaderPath) => CompileShader(type, shaderPath, true);
+    
+    private static ReadOnlyMemory<byte> CompileShader(ShaderType type, string shaderPath, bool isFormFile = false)
     {
+        ReadOnlyMemory<byte> shaderCompileCode;
+        
         (string entryPoitn, string profile) shaderProfile = type switch
         {
             ShaderType.Vertex => ("vert", "vs"),
@@ -46,10 +61,17 @@ public class ShaderTools
             ShaderType.Compute => ("compute", "cs"),
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
+
+        string profile = shaderProfile.profile + "_5_0";
         
-        var il = Compiler.CompileFromFile(shaderPath, shaderProfile.entryPoitn, shaderProfile.profile + "_5_0");
+        if (isFormFile)
+        {
+            shaderCompileCode = Compiler.CompileFromFile(shaderPath, null, ShaderInclude, shaderProfile.entryPoitn, profile);
+            return shaderCompileCode;
+        }
         
-        return il;
+        shaderCompileCode = Compiler.Compile(shaderPath, null, ShaderInclude, shaderProfile.entryPoitn, shaderProfile.entryPoitn, profile);
+        return shaderCompileCode;
     }
     
     public static ID3D11InputLayout ConfigVertexAttrib(ReadOnlyMemory<byte> vsShaderByte, ID3D11ShaderReflection reflection)

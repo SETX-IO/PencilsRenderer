@@ -121,6 +121,36 @@ public unsafe class DxResourcesFactory : IResourcesFactory
         return srv.NativePointer.ToInt64();
     }
 
+    public long CreateRenderTargetTexture(uint width, uint height, out long rtvPtr)
+    {
+        DxTextureCreateInfo info = new()
+        {
+            height = height,
+            width = width,
+            isRttTexture = true,
+            arraySize = 1,
+            mipLevels = 1,
+            format = Format.R8G8B8A8_UNorm,
+        };
+        
+        (ID3D11ShaderResourceView srv, ID3D11RenderTargetView? rtv) = CreateTexture(info);
+        
+        rtvPtr = rtv == null ? 0 : rtv.NativePointer.ToInt64();
+        return srv.NativePointer.ToInt64();
+    }
+
+    private (ID3D11ShaderResourceView srv, ID3D11RenderTargetView? rtv) CreateTexture(DxTextureCreateInfo info)
+    {
+        Texture2DDescription textureDesc = new(info.format, info.width, info.height, info.arraySize, info.mipLevels, BindFlags.RenderTarget | BindFlags.ShaderResource);
+        ShaderResourceViewDescription srvDesc = new(ShaderResourceViewDimension.Texture2D, info.format);
+        
+        var texture2D = _device.CreateTexture2D(textureDesc);
+        var srv = _device.CreateShaderResourceView(texture2D, srvDesc);
+        var rtv = info.isRttTexture ? _device.CreateRenderTargetView(texture2D) : null;
+        
+        return (srv, rtv);
+    }
+
     public long CreateRasterizerState(Cull cull, Fill fill)
     {
         RasterizerDescription rasterizerDesc = new((CullMode)cull, (FillMode)fill)

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
-using Hexa.NET.ImGui;
 using Pencils.Extension;
 using Pencils.Platform.DirectX11;
 using Pencils.RendererApi;
@@ -54,20 +53,23 @@ public class App
 
     private void OnInit()
     {
+        // new VkContext(_window);
         rendererContext = new DxContext(_window.Native!.DXHandle!.Value);
         rendererContext.Init();
         rendererContext.SetBufferColor(Color.LightSlateGray);
         
         
         Renderer renderer = new Renderer(rendererContext);
-        _imGui = new  ImGuiRenderer(renderer);
-        _imGui.ImGuiGenGuiEvent += () =>
-        {
-            ImGui.ShowDemoWindow();
-        };
+        Renderer2D renderer2D = new Renderer2D(rendererContext);
+        
+        // _imGui = new  ImGuiRenderer(renderer);
+        // _imGui.ImGuiGenGuiEvent += () =>
+        // {
+        //     ImGui.ShowDemoWindow();
+        // };
             
-        _sandBoxs.Add(new SandBox3D(rendererContext));
-        _sandBoxs.Add(new SandBox2D(rendererContext));
+        _sandBoxs.Add(new SandBox3D(renderer));
+        _sandBoxs.Add(new SandBox2D(renderer2D));
         _sandBoxs.Add(new BlackHole(renderer));
         
         foreach (var sandBox in _sandBoxs)
@@ -77,11 +79,12 @@ public class App
     private void OnRenderer(double obj)
     {
         rendererContext.SwapBuffers();
+        rendererContext.ClearBuffer();
         
         foreach (var sandBox in _sandBoxs)
             sandBox.Renderer((float)obj);
         
-        _imGui.Render((float)obj);
+        // _imGui.Render((float)obj);
     }
 
     private void OnResize(Vector2D<int> obj)

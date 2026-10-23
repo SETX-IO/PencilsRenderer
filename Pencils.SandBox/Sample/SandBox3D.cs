@@ -2,14 +2,11 @@
 using System.Numerics;
 using Pencils.Platform.DirectX11;
 using Pencils.RendererApi;
-using Serilog;
 
 namespace Pencils.SandBox.Sample;
 
 public class SandBox3D : ISandBox
 {
-    private readonly IGraphicsContext graphicsContext;
-    
     private Renderer _renderer = null!;
     private IMesh _mesh = null!;
     private IShaderLibrary _shaderLibrary = null!;
@@ -19,15 +16,13 @@ public class SandBox3D : ISandBox
     
     private Camera _cameraData = null!;
     
-    public SandBox3D(IGraphicsContext context)
+    public SandBox3D(Renderer renderer)
     {
-        graphicsContext = context;
+        _renderer = renderer;
     }
 
     public void Init(int width, int height)
     {
-        _renderer = new Renderer(graphicsContext);
-        
         Vertex[] a = [
             new(new Vector3(-0.5f,  0.5f, 0), Vector3.One, new Vector3(Vector2.UnitY, 0)),
             new(new Vector3( 0.5f,  0.5f, 0), Vector3.One, new Vector3(Vector2.One, 0)),
@@ -70,7 +65,7 @@ public class SandBox3D : ISandBox
         _renderer.RCommand.SetBlendState();
         _renderer.RCommand.SetFillAndCull();
         
-        _renderer.BeginScene(_cameraData.CameraMatrix);
+        _renderer.BeginScene(_cameraData.SceneData);
         
         _texture.Bind();
         _renderer.Submit(textureShader, _mesh, Matrix4x4.CreateRotationY(MathF.Min(MathF.Cos(_rotation), 15f)));

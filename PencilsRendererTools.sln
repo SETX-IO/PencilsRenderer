@@ -10,6 +10,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Extensions", "Extensions", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "spine-csharp", "Extensions\spine\spine-csharp.csproj", "{75D5C82C-BBFF-41DF-9C1A-0D9C4CDCFC7E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pencils.Vulkan", "Pencils.Vulkan\Pencils.Vulkan.csproj", "{ED1A1152-DB26-43B6-98F6-4848B9C0289D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,8 +34,13 @@ Global
 		{75D5C82C-BBFF-41DF-9C1A-0D9C4CDCFC7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75D5C82C-BBFF-41DF-9C1A-0D9C4CDCFC7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75D5C82C-BBFF-41DF-9C1A-0D9C4CDCFC7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED1A1152-DB26-43B6-98F6-4848B9C0289D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED1A1152-DB26-43B6-98F6-4848B9C0289D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED1A1152-DB26-43B6-98F6-4848B9C0289D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED1A1152-DB26-43B6-98F6-4848B9C0289D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{75D5C82C-BBFF-41DF-9C1A-0D9C4CDCFC7E} = {A55C4C5B-7434-4B42-B4B4-62957E193521}
+		{ED1A1152-DB26-43B6-98F6-4848B9C0289D} = {A55C4C5B-7434-4B42-B4B4-62957E193521}
 	EndGlobalSection
 EndGlobal

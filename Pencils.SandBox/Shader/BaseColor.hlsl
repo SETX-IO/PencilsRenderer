@@ -1,3 +1,5 @@
+#include "Include/EngineConstant.hlsl"
+
 struct Attributes
 {
     float3 position : POSITION;
@@ -9,10 +11,6 @@ struct Varyings
     float4 position : SV_POSITION;
     float4 color : COLOR0;
 };
-        
-cbuffer MvpMat : register(b0) {
-    float4x4 mvp; 
-}
 
 cbuffer Transform
 {
@@ -24,7 +22,6 @@ Varyings vert(Attributes In)
     Varyings Out;
             
     Out.position = float4(In.position, 1.0f);
-    // Out.position = mul(Out.position, transform);
     Out.position = mul(Out.position, mvp);
     
     Out.color = float4(In.color, 1.f);

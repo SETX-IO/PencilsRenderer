@@ -23,7 +23,6 @@ public class DxShader : IShader
     private ID3D11GeometryShader? _geometryShader;
     private ID3D11ComputeShader? _computeShader;
 
-    private readonly bool _isBaseShader;
     private ID3D11InputLayout? _inputLayout;
     
     private readonly Dictionary<ShaderType, ID3D11ShaderReflection> _shaderReflection = new();
@@ -33,7 +32,6 @@ public class DxShader : IShader
 
     private DxShader(string shaderPath, VertexAttrib[]? vertexAttributes)
     {
-        _isBaseShader = true;
         Name = Path.GetFileNameWithoutExtension(shaderPath);
 
         InitRasterizerShader(shaderPath, vertexAttributes);
@@ -43,7 +41,6 @@ public class DxShader : IShader
     private DxShader(string shaderCode, bool isBaseShader, VertexAttrib[]? vertexAttributes)
     {
         var factory = DxContext.ResourcesFactory;
-        _isBaseShader = isBaseShader;
 
         switch (isBaseShader)
         {
@@ -89,10 +86,9 @@ public class DxShader : IShader
     {
         var rCmd = DxContext.Context;
 
-        if (_isBaseShader)
+        if (_inputLayout != null)
         {
-            if (_inputLayout != null)
-                rCmd.IASetInputLayout(_inputLayout);
+            rCmd.IASetInputLayout(_inputLayout);
             
             rCmd.VSSetShader(_vertexShader);
             rCmd.PSSetShader(_pixelShader);

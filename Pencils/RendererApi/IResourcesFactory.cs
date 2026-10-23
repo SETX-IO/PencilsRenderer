@@ -1,4 +1,5 @@
 ﻿using System;
+using Vortice.Direct3D11;
 
 namespace Pencils.RendererApi;
 
@@ -49,4 +50,5 @@ public interface IResourcesFactory
     long CreateRasterizerState(Cull cull, Fill fill);
     long CreateDepthStencilState(DepthStencilInfo info);
     long CreateBlendState(BlendStateInfo info);
+    long CreateRenderTargetTexture(uint width, uint height, out long rtvPtr);
 }

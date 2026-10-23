@@ -1,3 +1,5 @@
+#include "Include/EngineConstant.hlsl"
+
 struct Attributes
 {
     float3 position : POSITION;
@@ -9,27 +11,25 @@ struct Varyings
     float3 texCoord : TEXCOORD0;
 };
 
-cbuffer MvpMat : register(b0) {
-    float4x4 mvp;
-}
-
 Varyings vert(Attributes In)
 {
     Varyings Out;
-            
+    
+    matrix mvp = mul(model, view);
+    mvp = mul(mvp, proj);
+    
     Out.position = float4(In.position, 1.f);
     Out.position = mul(Out.position, mvp);
+    
+    Out.position.z = Out.position.w;
     
     Out.texCoord = In.position;
             
     return Out;
 }
-        
-TextureCube tex : register(t0);
-SamplerState samLineear : register(s0);
 
 float4 frag(Varyings In) : SV_Target
 {
-    float4 color = tex.Sample(samLineear, In.texCoord);
+    float4 color = texCube.Sample(samLineear, In.texCoord);
     return color;
 }
